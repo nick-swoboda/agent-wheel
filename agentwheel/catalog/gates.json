@@ -1,0 +1,167 @@
+{
+  "version": 4,
+  "source": "Agent-Wheel-ascii-diagram.txt, GATE CATALOG",
+  "gates": {
+    "VALIDATE": {
+      "text_id": null,
+      "kind": "node",
+      "actions": [
+        "ACCEPT",
+        "REJECT_RESTAGE"
+      ],
+      "transitions": [
+        "next stage",
+        "Reopen of this node"
+      ],
+      "applies_to": [
+        "idea",
+        "experience",
+        "spec",
+        "executions"
+      ],
+      "text_ids": {
+        "experience": "EXPERIENCE_PENDING_V1",
+        "spec": "SPEC_PENDING_V1"
+      },
+      "note": "A fresh turn, deterministic, not a dispatch, never the staging turn."
+    },
+    "DESIGN_READY": {
+      "text_id": "DESIGN_READY_V1",
+      "kind": "design",
+      "actions": [
+        "APPROVE",
+        "REPLY_ASK",
+        "SUMMARY",
+        "REJECT"
+      ],
+      "transitions": [
+        "Spec",
+        "same gate",
+        "same gate",
+        "fail-up to target (default design) under REJECTED_OPTIMIZE_V1"
+      ],
+      "params": {
+        "REJECT": {
+          "target": {
+            "enum": [
+              "idea",
+              "experience",
+              "design"
+            ],
+            "default": "design"
+          }
+        }
+      }
+    },
+    "PLAN_READY": {
+      "text_id": "PLAN_READY_V1",
+      "kind": "plan",
+      "actions": [
+        "SUMMARIZE",
+        "SKIP_REVIEW",
+        "APPROVE"
+      ],
+      "transitions": [
+        "same gate",
+        "execution unlocked",
+        "execution unlocked"
+      ]
+    },
+    "TEST_READY": {
+      "text_id": "TEST_READY_V1",
+      "kind": "plan",
+      "actions": [
+        "ACKNOWLEDGE",
+        "COMMENT",
+        "WAIVE"
+      ],
+      "transitions": [
+        "continue",
+        "same gate",
+        "continue with a WaiverRecord (reason required)"
+      ]
+    },
+    "BUDGET_GATE": {
+      "text_id": "BUDGET_GATE_V1",
+      "kind": "wheel",
+      "actions": [
+        "EXTEND",
+        "REPLAN",
+        "WAIT",
+        "STOP"
+      ],
+      "transitions": [
+        "next scale step (25 -> 50 -> unlimited)",
+        "Reopen Plan",
+        "WAITING_GATED until the window admits a dispatch",
+        "PAUSED"
+      ]
+    },
+    "ROUTE_ATTENTION": {
+      "text_id": "ROUTE_ATTENTION_V1",
+      "kind": "wheel",
+      "actions": [
+        "COMPLETE_ACTION",
+        "CHOOSE_ROUTE",
+        "PAUSE"
+      ],
+      "transitions": [
+        "redispatch",
+        "redispatch on the chosen allowed route (a seat assignment change)",
+        "PAUSED"
+      ]
+    },
+    "HUMAN_ESCALATION": {
+      "text_id": "HUMAN_ESCALATION_V1",
+      "kind": "wheel",
+      "actions": [
+        "CHOOSE_DIRECTION",
+        "RETRY",
+        "EDIT_NODE",
+        "NODE_STANDS",
+        "STOP"
+      ],
+      "transitions": [
+        "restage",
+        "redispatch",
+        "Reopen the responsible node",
+        "the named node stands, the finding returns to the seat",
+        "PAUSED"
+      ],
+      "note": "Opens with {cause}; with {target} when a seat named a human-authored node. NODE_STANDS: the named node is unchanged, byte for byte, and the artifact is wrong. The staged result is rejected with the Reviewer's finding, and the seat that produced it is redispatched - same seat, same route - with that finding as its previous attempt and the node as it stands; one dispatch, counted. It rewrites nothing, silently or otherwise: a human-authored node changes only through EDIT_NODE and the form. The identical-gap count keeps running across it, so the same finding twice comes back to this gate with the count, never into a loop."
+    },
+    "RECOVERY_REQUIRED": {
+      "text_id": "RECOVERY_REQUIRED_V1",
+      "kind": "wheel",
+      "actions": [
+        "RETRY",
+        "RESUME",
+        "DISCARD_LATE",
+        "STOP"
+      ],
+      "transitions": [
+        "redispatch",
+        "continue",
+        "quarantine the late card",
+        "PAUSED"
+      ],
+      "note": "RETRY and RESUME first reconcile the adapter's in-flight records against CardBinding."
+    },
+    "REPAIR_REQUIRED": {
+      "text_id": "REPAIR_REQUIRED_V1",
+      "kind": "node",
+      "actions": [
+        "REPAIR",
+        "REPLY",
+        "WAIVE",
+        "STOP"
+      ],
+      "transitions": [
+        "EARLIEST_REPAIR_ONLY_V1 on the claim's author",
+        "same gate",
+        "WaiverRecord",
+        "PAUSED"
+      ]
+    }
+  }
+}

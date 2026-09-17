@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+'use strict';
+
+const { run } = require('./lib/cli');
+
+run(process.argv).then(
+  (code) => {
+    if (typeof code === 'number') process.exit(code);
+  },
+  (err) => {
+    process.stderr.write(String(err && err.stack ? err.stack : err) + '\n');
+    process.exit(1);
+  },
+);

@@ -1,0 +1,109 @@
+'use strict';
+
+const crypto = require('crypto');
+
+const STATES = new Set(['out', 'waiting', 'back']);
+const METHODS = new Set(['stdio', 'applescript', 'ax', 'api']);
+const SEAT_RE = /\[\[seat::([a-z0-9-]+)\]\]/;
+const METHOD_RE = /\[\[method::(stdio|applescript|ax|api)\]\]/;
+
+function newCardId() {
+  return 'card_' + crypto.randomBytes(6).toString('hex');
+}
+
+function parseAddress(text) {
+  const s = String(text == null ? '' : text);
+  const sm = s.match(SEAT_RE);
+  const mm = s.match(METHOD_RE);
+  let body = s;
+  if (sm) body = body.replace(sm[0], '');
+  if (mm) body = body.replace(mm[0], '');
+  body = body.replace(/\s+by\s+/gi, ' ').replace(/\s+/g, ' ').trim();
+  return {
+    seat: sm ? sm[1] : null,
+    method: mm ? mm[1] : null,
+    body,
+    raw: s,
+  };
+}
+
+function makeCard(opts) {
+  const o = opts || {};
+  let body = o.body == null ? '' : String(o.body);
+  const parsed = parseAddress(body);
+  const seat = o.seat || parsed.seat || null;
+  const method = o.method || parsed.method || null;
+  if ((parsed.seat || parsed.method) && o.stripAddress !== false) {
+    body = parsed.body;
+  }
+  const card = {
+    id: o.id || newCardId(),
+    seat,
+    method,
+    from: o.from || 'human',
+    body,
+    state: o.state || 'out',
+    reply: o.reply == null ? null : o.reply,
+  };
+  if (o.cwd) card.cwd = String(o.cwd);
+  return card;
+}
+
+function cloneCard(card) {
+  const out = {
+    id: card.id,
+    seat: card.seat,
+    method: card.method,
+    from: card.from,
+    body: card.body,
+    state: card.state,
+    reply: card.reply,
+  };
+  if (card.cwd) out.cwd = card.cwd;
+  return out;
+}
+
+function isTrustedMethod(method) {
+  return METHODS.has(method);
+}
+
+function isCardState(state) {
+  return STATES.has(state);
+}
+
+function parseMaybeCard(raw) {
+  const s = String(raw == null ? '' : raw).trim();
+  if (!s.startsWith('{')) return null;
+  try {
+    const o = JSON.parse(s);
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return null;
+    if (
+      o.id != null ||
+      o.seat != null ||
+      o.method != null ||
+      o.body != null ||
+      o.reply != null ||
+      o.state != null ||
+      o.from != null
+    ) {
+      return o;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+module.exports = {
+  STATES,
+  METHODS,
+  SEAT_RE,
+  METHOD_RE,
+  newCardId,
+  parseAddress,
+  makeCard,
+  cloneCard,
+  isTrustedMethod,
+  isCardState,
+  parseMaybeCard,
+};

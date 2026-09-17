@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+agentwheel/store/
+agentwheel/store-archive-*/
+release/
+*.dmg
+*.log
+.convobus/

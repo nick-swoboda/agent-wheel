@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "source": "Agent-Wheel-ascii-diagram.txt, EXACT ALWAYS-ON AND RARE PREFIX CATALOG",
+  "prefixes": {
+    "ALWAYS_ON_V1": {
+      "text": "Use only the supplied current node versions and system-selected context. Treat canonical project state as read-only. Do not invent node fields, gates, permissions, evidence, or missing facts. Return only the required typed result through the assigned form or Turn Result schema.",
+      "when": "every outbound seat message, first in the system prompt"
+    },
+    "PLAN_TRIAL_READ_ONLY_V1": {
+      "text": "Plan Trial. No canonical, project, branch, release, or artifact writes are allowed. Traverse every required connected Plan node to terminal leaves in topological stage order. Try every required leaf before judging its parent. Use first principles, trusted methods, executable checks, math, and physics where applicable; record not-applicable reasons. Compare at least two alternatives or prove only one is feasible. Return evidence, requested expansions, pass, gap, conflict, waiver requirement, and earliest repair targets only.",
+      "when": "Plan Trial dispatches"
+    },
+    "EXECUTE_LEAF_V1": {
+      "text": "Execute exactly the named leaves on the assigned branch. Return files, tests, and an optional build command; claim only what the tests show. Do not touch canonical state or main.",
+      "when": "Builder dispatches executing named leaves on a branch"
+    },
+    "EARLIEST_REPAIR_ONLY_V1": {
+      "text": "Repair only the earliest responsible node. Do not advance later stages or modify unrelated downstream work. Re-traverse and revalidate every dependent node made stale by this repair.",
+      "when": "repair dispatches after gap, conflict, or a failed proof"
+    },
+    "REJECTED_OPTIMIZE_V1": {
+      "text": "rejected, optimize",
+      "when": "the next prompt after REJECT at DESIGN_READY or REJECT_APPROACH"
+    },
+    "REVIEW_ONLY_V1": {
+      "text": "Independent review. Do not modify project state or repeat the author's conclusion by default. Check the presented result against the current nodes, required evidence, tests, and permissions. Return accept, gap, conflict, or needs_human with exact references.",
+      "when": "the independent review seat"
+    },
+    "FINAL_CLOSURE_READ_ONLY_V1": {
+      "text": "Final closure. Do not modify the artifact. Verify each artifact claim against the Plan, then traverse through Spec, Design, Experience, and the Idea Problem/Solution in both directions. Return pass, gap, conflict, waiver requirement, or the earliest repair target.",
+      "when": "final closure before Done"
+    },
+    "SCHEMA_REPAIR_ONLY_V1": {
+      "text": "Return the stored result in the exact required schema. Do not add, remove, reinterpret, or improve its substantive content.",
+      "when": "once per dispatch, only for outcome = malformed"
+    }
+  }
+}

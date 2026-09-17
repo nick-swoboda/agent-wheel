@@ -1,0 +1,21 @@
+{
+  "name": "agent-wheel",
+  "version": "2.1.11",
+  "license": "Apache-2.0",
+  "description": "Agent Wheel - one vertical, full-circle system. Law: ../Agent-Wheel-ascii-diagram.txt",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "agentwheel": "./bin/agentwheel.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "test:runtimes": "node scripts/test-runtimes.js",
+    "test:engine": "node scripts/test-runtimes.js --no-gui",
+    "helper": "node bin/agentwheel.js helper",
+    "mcp": "node bin/agentwheel.js mcp"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

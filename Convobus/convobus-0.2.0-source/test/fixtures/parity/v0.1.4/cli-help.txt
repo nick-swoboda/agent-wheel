@@ -1,0 +1,12 @@
+convobus — one chat in the middle
+  convobus seats [--json]
+  convobus bind --seat HANDLE --cwd DIR
+  convobus loop [--seat HANDLE] [--to HANDLE] [--from HANDLE] [--turns N] [--body TEXT] [--body2 TEXT] -- argv...
+  convobus inflight
+  convobus reply [--id ID] [--stdin]
+  convobus next [--seat HANDLE] [--method stdio|applescript|ax] [--from HANDLE] [--body TEXT] [--stdin]
+  convobus check [message] | convobus check --stdin [--reply]
+  convobus stage [--id ID] [--reply TEXT] [--file-wins] [--session-file PATH]
+  convobus turn [--seat HANDLE] [--method METHOD] [--from HANDLE] [--body TEXT] [--cwd DIR] [--id ID] [--file-wins] -- argv...
+  convobus gui [--port N]
+A send is [[seat::<handle>]] by [[method::stdio|applescript|ax]].

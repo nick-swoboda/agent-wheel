@@ -1,0 +1,23 @@
+{
+  "version": 4,
+  "source": "Agent-Wheel-ascii-diagram.txt, EXACT HUMAN-FACING CATALOG",
+  "placeholders": [
+    "outcome",
+    "route",
+    "cause",
+    "target"
+  ],
+  "texts": {
+    "EXPERIENCE_PENDING_V1": "Describe the intended behavior and experience, or answer the guided questions. Accept, or reject and restage, when ready.",
+    "DESIGN_READY_V1": "The Design is ready. Approve, reply/ask, summary, or reject?",
+    "SPEC_PENDING_V1": "Confirm the requirements, constraints, and release target. Accept, or reject and restage, when ready.",
+    "PLAN_READY_V1": "Plan Trial is complete and the closure proof passed. Summarize, skip optional review, or approve?",
+    "TEST_READY_V1": "Test result is ready. Acknowledge, comment, or waive with a reason?",
+    "BUDGET_GATE_V1": "The prompt budget for this window is spent. Extend, replan, wait for the window, or stop?",
+    "SOLUTION_UNSATISFIED_V1": "No pass recorded. The Idea's Solution is not yet satisfied. Reply with the decisive correction or reopen the responsible node.",
+    "REPAIR_REQUIRED_V1": "A required claim failed closure. Repair, reply, waive where permitted, or stop?",
+    "ROUTE_ATTENTION_V1": "This exact route is not ready ({outcome}: {route}). Complete the shown route action, choose another allowed route, or pause the project.",
+    "HUMAN_ESCALATION_V1": "Traversal did not produce a decisive resolution ({cause}{target}). Choose the accepted direction, request another trial, edit the responsible node, let the node stand and return the finding to the seat, or stop.",
+    "RECOVERY_REQUIRED_V1": "Agent Wheel recovered an interrupted turn. Review the last durable state, then Retry, Resume, Discard the late result, or Stop."
+  }
+}

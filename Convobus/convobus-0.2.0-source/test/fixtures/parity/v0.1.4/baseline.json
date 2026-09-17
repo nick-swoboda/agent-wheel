@@ -1,0 +1,12 @@
+{
+  "testCount": 99,
+  "testFailures": 0,
+  "hashes": {
+    "lib/app-main.swift": "892b19dfc46683a061b9b46eff9337190841f75debfa3ccf504f9eb9dd1d7d3f",
+    "lib/ax-helper.swift": "0763c23cd83d40323d2e9aa5a1b8654b8f15f26badcec6dea47ab70a22a94b87",
+    "appExecutable": "6f5d73893598bf6857c04d6a097eeb8e223b2ab7d9b916936139444d1ea1666f",
+    "axHelper": "1d714f446c5b4a02630d4ae16ac765d122b3615231fbb8606cade7351a0c44cb",
+    "nodeRuntime": "101c1c5f4fa32b8e3611289dc8066a19e8c5284cad9f3ed9e7f66dcf6d8f12e3",
+    "releaseDmg": "ac55a0b823fe514b1c5f7dad101810336751f9e934fa847fd57c1037562599a2"
+  }
+}

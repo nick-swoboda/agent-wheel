@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleDevelopmentRegion</key>
+  <string>en</string>
+  <key>CFBundleExecutable</key>
+  <string>Convobus</string>
+  <key>CFBundleDisplayName</key>
+  <string>Convobus</string>
+  <key>CFBundleIdentifier</key>
+  <string>com.convobus.app</string>
+  <key>CFBundleIconFile</key>
+  <string>ConvobusIcon.icns</string>
+  <key>CFBundleIconName</key>
+  <string>ConvobusIcon</string>
+  <key>CFBundleInfoDictionaryVersion</key>
+  <string>6.0</string>
+  <key>CFBundleName</key>
+  <string>Convobus</string>
+  <key>CFBundlePackageType</key>
+  <string>APPL</string>
+  <key>CFBundleShortVersionString</key>
+  <string>0.2.0</string>
+  <key>CFBundleVersion</key>
+  <string>8</string>
+  <key>LSMinimumSystemVersion</key>
+  <string>13.0</string>
+  <key>NSAccessibilityUsageDescription</key>
+  <string>Convobus sets the named app's composer, presses Send, and reads the reply into the one Convobus transcript.</string>
+  <key>NSDocumentsFolderUsageDescription</key>
+  <string>Convobus reads its saved context and conversation state and connects projects you select in Documents.</string>
+  <key>NSDesktopFolderUsageDescription</key>
+  <string>Convobus connects only the project folders you select on the Desktop.</string>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>Convobus delivers a card to another app through that app's dictionary or accessibility roles, then reads the reply into the one Convobus transcript.</string>
+  <key>NSAppleScriptEnabled</key>
+  <true/>
+  <key>NSHighResolutionCapable</key>
+  <true/>
+</dict>
+</plist>

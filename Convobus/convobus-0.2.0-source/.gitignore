@@ -1,0 +1,14 @@
+.DS_Store
+node_modules/
+test/.tmp/
+.convobus/
+release/
+Convobus-*-release-*/
+
+# Native build outputs. The source plist and icon resources remain tracked.
+app/Convobus.app/Contents/MacOS/
+app/Convobus.app/Contents/_CodeSignature/
+app/Convobus.app/Contents/Resources/Backend/
+app/Convobus.app/Contents/Resources/Runtime/
+app/Convobus.app/Contents/Resources/ConvobusProtocol.json
+app/Convobus.app/Contents/Resources/provider-catalog.json

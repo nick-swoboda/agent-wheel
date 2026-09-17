@@ -1,0 +1,141 @@
+{
+  "catalogVersion": 2,
+  "seats": [
+    {
+      "handle": "stdio",
+      "kind": "system",
+      "binary": null,
+      "surface": "any agent on stdin/stdout",
+      "method": "stdio"
+    },
+    {
+      "handle": "human",
+      "kind": "system",
+      "binary": null,
+      "surface": "chat or CLI composer",
+      "method": "stdio"
+    },
+    {
+      "handle": "grok-cli",
+      "kind": "cli",
+      "binary": "grok",
+      "surface": "grok",
+      "method": "stdio"
+    },
+    {
+      "handle": "claude-cli",
+      "kind": "cli",
+      "binary": "claude",
+      "surface": "claude",
+      "method": "stdio"
+    },
+    {
+      "handle": "claude-app",
+      "kind": "app",
+      "binary": "claude",
+      "surface": "Claude.app",
+      "method": "stdio",
+      "apps": ["/Applications/Claude.app"],
+      "process": "Claude",
+      "bundles": ["com.anthropic.claudefordesktop"],
+      "fileWins": "claude-jsonl"
+    },
+    {
+      "handle": "chatgpt-cli",
+      "kind": "cli",
+      "binary": "codex",
+      "surface": "codex",
+      "method": "stdio"
+    },
+    {
+      "handle": "chatgpt-chat-app",
+      "kind": "app",
+      "binary": null,
+      "surface": "ChatGPT Classic.app",
+      "method": "ax",
+      "apps": ["/Applications/ChatGPT Classic.app"],
+      "process": "com.openai.chat",
+      "bundles": ["com.openai.chat"]
+    },
+    {
+      "handle": "chatgpt-modern-chat-app",
+      "kind": "app",
+      "binary": null,
+      "surface": "ChatGPT.app Chat",
+      "method": "ax",
+      "apps": ["/Applications/ChatGPT.app"],
+      "process": "com.openai.codex",
+      "bundles": ["com.openai.codex"]
+    },
+    {
+      "handle": "chatgpt-app",
+      "kind": "app",
+      "binary": null,
+      "surface": "ChatGPT.app",
+      "method": "applescript",
+      "apps": ["/Applications/ChatGPT.app"],
+      "process": "com.openai.codex",
+      "bundles": ["com.openai.codex"]
+    },
+    {
+      "handle": "cursor-cli",
+      "kind": "cli",
+      "binary": "cursor-agent",
+      "surface": "cursor-agent",
+      "method": "stdio"
+    },
+    {
+      "handle": "cursor-app",
+      "kind": "app",
+      "binary": null,
+      "surface": "Cursor.app",
+      "method": "ax",
+      "apps": ["/Applications/Cursor.app"],
+      "process": "Cursor",
+      "bundles": ["com.todesktop.230313mzl4w4u92"]
+    }
+  ],
+  "providers": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "routes": [
+        { "surface": "app", "type": "chat", "label": "Chat", "seat": "claude-app", "variant": "chat", "appPath": "/Applications/Claude.app" },
+        { "surface": "app", "type": "cowork", "label": "Cowork", "seat": "claude-app", "variant": "cowork", "appPath": "/Applications/Claude.app" },
+        { "surface": "app", "type": "claude-code", "label": "Claude Code", "seat": "claude-app", "variant": "claude-code", "appPath": "/Applications/Claude.app" },
+        { "surface": "cli", "type": "claude-cli", "label": "Claude CLI", "seat": "claude-cli", "variant": "claude-cli", "command": "claude" }
+      ]
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "routes": [
+        { "surface": "app", "type": "classic", "label": "Classic", "seat": "chatgpt-chat-app", "variant": "classic", "appPath": "/Applications/ChatGPT Classic.app", "bundleIdentifier": "com.openai.chat", "projectBound": false },
+        { "surface": "app", "type": "chat", "label": "Chat", "seat": "chatgpt-modern-chat-app", "variant": "chat", "appPath": "/Applications/ChatGPT.app", "bundleIdentifier": "com.openai.codex", "projectBound": false },
+        { "surface": "app", "type": "work", "label": "Work", "seat": "chatgpt-app", "variant": "work", "appPath": "/Applications/ChatGPT.app", "bundleIdentifier": "com.openai.codex" },
+        { "surface": "cli", "type": "codex", "label": "Codex", "seat": "chatgpt-cli", "variant": "codex", "command": "codex" }
+      ]
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "routes": [
+        { "surface": "app", "type": "cursor", "label": "Cursor", "seat": "cursor-app", "variant": "cursor", "appPath": "/Applications/Cursor.app" },
+        { "surface": "cli", "type": "cursor-cli", "label": "Cursor CLI", "seat": "cursor-cli", "variant": "cursor-cli", "command": "cursor-agent" }
+      ]
+    },
+    {
+      "id": "grok",
+      "name": "Grok",
+      "routes": [
+        { "surface": "cli", "type": "grok-cli", "label": "Grok CLI", "seat": "grok-cli", "variant": "grok-cli", "command": "grok" }
+      ]
+    }
+  ],
+  "legacySurfaces": [
+    { "handle": "claude-app", "name": "Claude.app Cowork" },
+    { "handle": "claude-cli", "name": "Claude Code CLI" },
+    { "handle": "cursor-app", "name": "Cursor" },
+    { "handle": "chatgpt-app", "name": "ChatGPT" }
+  ]
+}

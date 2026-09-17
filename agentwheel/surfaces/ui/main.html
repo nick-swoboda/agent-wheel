@@ -1,0 +1,2291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Wheel</title>
+<style>
+  :root {
+    --bg: #17171a; --panel: #1b1b1f; --card: #202024; --card2: #28282d; --line: #36363e;
+    --text: #eeeeef; --dim: #aaaab3; --accent-rgb: 142,169,193; --accent: rgb(var(--accent-rgb));
+    --gold-rgb: 224,170,70; --gold: rgb(var(--gold-rgb));
+    --green: #34c759; --yellow: var(--gold); --red: #ff453a; --purple: #bf5af2;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, "SF Pro Text", Helvetica, Arial, sans-serif;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  body { -webkit-user-select: text; user-select: text; cursor: auto; }
+  button, .chip, .rail-item, .badge, .pill, .node-head, summary {
+    -webkit-user-select: none; user-select: none;
+  }
+  ::selection { background: rgba(var(--accent-rgb),.35); }
+  #app { display: flex; flex: 1; min-height: 0; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); padding: 14px 12px; overflow-y: auto; }
+  #rail { width: 216px; flex: none; }
+  #rail-list { display: flex; flex-direction: column; min-height: 100%; }
+  #inspector { width: 310px; flex: none; border-right: 0; border-left: 1px solid var(--line); }
+  .rail-title { font-size: 11px; letter-spacing: .8px; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
+  .rail-item {
+    display: flex; align-items: center; gap: 8px; padding: 7px 9px; border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; width: 100%; color: inherit; background: transparent;
+    font: inherit; text-align: left; min-height: 38px;
+  }
+  .rail-item:hover { background: rgba(255,255,255,.04); }
+  .rail-item.selected { background: var(--card2); border-color: var(--line); }
+  .rail-item.empty { color: var(--dim); font-style: italic; cursor: default; }
+  .rail-item.empty:hover { background: transparent; }
+  .rail-new {
+    display: flex; align-items: center; gap: 8px; justify-content: center;
+    border: 1px solid rgba(var(--accent-rgb),.55); background: rgba(var(--accent-rgb),.12); color: var(--text);
+    border-radius: 9px; padding: 10px 12px; cursor: pointer; font: inherit; font-weight: 600; width: 100%;
+  }
+  .rail-new:hover { background: rgba(var(--accent-rgb),.22); }
+  .rail-sep { height: 1px; background: var(--line); margin: 12px 0 10px; }
+  .rail-grow { flex: 1; min-height: 12px; }
+  .rail-foot { border-top: 1px solid var(--line); padding-top: 8px; }
+  #main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  header {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+    border-bottom: 1px solid var(--line); background: var(--bg);
+  }
+  header .name { font-weight: 650; letter-spacing: .2px; }
+  .dot { width: 11px; height: 11px; border-radius: 50%; background: #555; display: inline-block; flex: none; }
+  .dot.green { background: var(--green); } .dot.yellow { background: var(--yellow); }
+  .dot.red { background: var(--red); } .dot.purple { background: var(--purple); box-shadow: 0 0 8px var(--purple); }
+  .headline { color: var(--dim); font-size: 12.5px; }
+  #stage-line { margin-left: auto; }
+  button.ghost {
+    background: transparent; color: var(--dim); border: 1px solid var(--line); border-radius: 8px;
+    padding: 4px 10px; font-size: 12px; cursor: pointer;
+  }
+  button.ghost:hover { color: var(--text); border-color: var(--accent); }
+  #activity { flex: none; }
+  #activity .band {
+    display: flex; align-items: center; gap: 9px; flex-wrap: wrap;
+    padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--card); font-size: 13px;
+  }
+  #activity .band.idle { background: transparent; color: var(--dim); }
+  #activity .band.waiting { background: rgba(var(--gold-rgb),.08); }
+  #activity .band.held { background: rgba(255,69,58,.09); }
+  #activity .band.done { background: rgba(191,90,242,.1); }
+  #activity .who { font-weight: 620; }
+  #activity .sub { color: var(--dim); font-size: 12.5px; }
+  #activity .grow { flex: 1; }
+  .pulse {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .25; } }
+  #activity .feed {
+    max-height: 190px; overflow-y: auto; padding: 8px 16px 10px;
+    border-bottom: 1px solid var(--line); background: var(--bg); font-size: 12.5px;
+  }
+  #activity .feed .row { display: flex; gap: 10px; padding: 2px 0; }
+  #activity .feed .t { color: var(--dim); flex: none; font-variant-numeric: tabular-nums; }
+  #activity .said {
+    border-left: 2px solid rgba(var(--accent-rgb),.55); padding: 4px 0 4px 9px; margin: 6px 0 2px; color: var(--text);
+  }
+  #scroll { flex: 1; overflow-y: auto; padding: 24px; }
+  #stack, #notice { max-width: 920px; margin: 0 auto; }
+  .node { background: var(--card); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; overflow: hidden; }
+  .node.current { border-color: rgba(var(--accent-rgb),.55); }
+  .node-head { display: flex; align-items: center; gap: 10px; padding: 14px 16px; cursor: pointer;
+    width: 100%; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; }
+  .node-head:hover { background: var(--card2); }
+  .caret { color: var(--dim); font-size: 13px; line-height: 1; width: 12px; flex: none; text-align: center; }
+  .node-head:hover .caret { color: var(--text); }
+  .node-title { font-weight: 620; }
+  .node-line { color: var(--dim); font-size: 12.5px; margin-left: auto; }
+  .badge {
+    font-size: 10.5px; padding: 1px 7px; border-radius: 9px; border: 1px solid var(--line);
+    color: var(--dim); text-transform: uppercase; letter-spacing: .4px;
+  }
+  .badge.accepted, .badge.done, .badge.passed { color: var(--green); border-color: rgba(52,199,89,.35); }
+  .badge.staged, .badge.executing { color: var(--yellow); border-color: rgba(var(--gold-rgb),.35); }
+  .badge.stale, .badge.reopened, .badge.failed { color: var(--red); border-color: rgba(255,69,58,.35); }
+  .node-body { border-top: 1px solid var(--line); padding: 12px 14px; }
+  .fieldname { display: block; font-size: 11px; letter-spacing: .8px; color: var(--accent); text-transform: uppercase; margin: 14px 0 6px; }
+  .fieldname:first-child { margin-top: 2px; }
+  .fieldname .count { color: var(--dim); margin-left: 8px; letter-spacing: 0; text-transform: none; font-size: 11.5px; }
+  .fieldval { background: var(--card2); border-radius: 8px; padding: 9px 11px; white-space: pre-wrap; word-break: break-word; }
+  .fieldval.empty { color: var(--dim); font-style: italic; }
+  .fieldval ul, .fieldval ol { margin: 0; padding-left: 18px; }
+  .fieldval li + li { margin-top: 3px; }
+  .rule { display: flex; gap: 9px; padding: 3px 0; }
+  .rule + .rule { border-top: 1px solid rgba(255,255,255,.05); }
+  .tag {
+    color: var(--accent); font: 11px/1.7 ui-monospace, Menlo, monospace; opacity: .7;
+    letter-spacing: .2px;
+  }
+  .rule .tag { flex: none; min-width: 30px; opacity: .85; }
+  .sub-block + .sub-block { margin-top: 9px; border-top: 1px solid rgba(255,255,255,.06); padding-top: 9px; }
+  .sub-title { font-weight: 620; }
+  .kv { display: flex; gap: 8px; padding: 2px 0; }
+  .kv .k { color: var(--dim); min-width: 108px; flex: none; }
+  details.tech, details.raw { margin-top: 14px; }
+  details.tech > summary, details.raw > summary {
+    cursor: pointer; color: var(--dim); font-size: 12px; padding: 5px 0; list-style: none;
+  }
+  details.tech > summary::-webkit-details-marker, details.raw > summary::-webkit-details-marker { display: none; }
+  details.tech > summary::before, details.raw > summary::before { content: '\25B8\00a0\00a0'; }
+  details.tech[open] > summary::before, details.raw[open] > summary::before { content: '\25BE\00a0\00a0'; }
+  details.tech > summary:hover, details.raw > summary:hover { color: var(--text); }
+  details.raw pre {
+    background: var(--card2); border-radius: 8px; padding: 9px 11px; overflow-x: auto;
+    font: 11.5px/1.45 ui-monospace, Menlo, monospace; color: var(--dim); white-space: pre-wrap; word-break: break-word;
+  }
+  .progress { height: 6px; border-radius: 4px; background: var(--card2); overflow: hidden; margin: 4px 0 8px; }
+  .progress > span { display: block; height: 100%; background: var(--green); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+  .chip {
+    border: 1px solid rgba(var(--accent-rgb),.45); color: var(--text); background: rgba(var(--accent-rgb),.09);
+    border-radius: 999px; padding: 5px 12px; font-size: 12.5px; cursor: pointer;
+  }
+  .chip:hover { background: rgba(var(--accent-rgb),.2); }
+  .chip .f { color: var(--accent); font-weight: 650; margin-right: 5px; text-transform: uppercase; font-size: 10px; }
+  .panel {
+    border: 1px solid rgba(var(--gold-rgb),.4); background: rgba(var(--gold-rgb),.06);
+    border-radius: 10px; padding: 11px 13px; margin-top: 10px;
+  }
+  .panel.gate { border-color: rgba(var(--accent-rgb),.5); background: rgba(var(--accent-rgb),.07); }
+  .panel.gate .detail { font-size: 12px; opacity: .8; margin: 4px 0 8px; white-space: pre-wrap; }
+  .form-editor { margin-top: 10px; }
+  .form-editor textarea { width: 100%; box-sizing: border-box; min-height: 240px; resize: vertical; background: var(--card2);
+    color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+    font: 12px/1.45 ui-monospace, Menlo, monospace; }
+  .form-editor textarea:focus { border-color: var(--accent); outline: none; }
+  .panel.recovery { border-color: rgba(255,69,58,.5); background: rgba(255,69,58,.08); margin: 0 0 12px; }
+  .panel .q { margin-bottom: 9px; }
+  .panel .actions { margin-top: 11px; }
+  .page-body > details.tech { margin-top: 20px; border-top: 1px solid var(--line); padding-top: 8px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  button.act {
+    background: var(--card2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; min-height: 34px;
+  }
+  button.act:hover { border-color: var(--accent); }
+  button.act.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 650; }
+  button.act.danger { border-color: rgba(255,69,58,.5); color: var(--red); }
+  button.act.small { padding: 3px 10px; font-size: 12px; }
+  .page { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .page-head {
+    display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-bottom: 1px solid var(--line);
+    background: var(--card2);
+  }
+  .page-head .t { font-weight: 650; font-size: 15px; }
+  .page-head .grow { flex: 1; }
+  .page-body { padding: 22px 24px 26px; }
+  .page-body .hint { color: var(--dim); font-size: 12.5px; margin-bottom: 12px; }
+  .page-body input, .page-body textarea {
+    width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 11px; font: inherit;
+  }
+  .page-body input:focus, .page-body textarea:focus { border-color: var(--accent); outline: none; }
+  .cover {
+    margin-bottom: 20px;
+  }
+  .cover-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 20px 24px; border-color: rgba(var(--accent-rgb),.3);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .cover-t { font-weight: 650; font-size: 16px; }
+  .cover-d { color: var(--dim); font-size: 13px; }
+  .seat-fix { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 5px 0 0; }
+  .table-scroll { overflow-x: auto; }
+  table.routes { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+  table.routes th {
+    text-align: left; font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; font-weight: 600;
+    color: var(--dim); padding: 0 12px 7px 0; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  table.routes th.right, table.routes td.right { text-align: right; padding-right: 0; white-space: nowrap; }
+  table.routes th.grow { width: 36%; }
+  table.routes tbody tr { border-bottom: 1px solid rgba(255,255,255,.06); }
+  table.routes tbody tr:last-child { border-bottom: 0; }
+  table.routes td { padding: 9px 12px 9px 0; vertical-align: top; }
+  table.routes td.prov { font-weight: 620; white-space: nowrap; }
+  table.routes td.type { color: var(--dim); white-space: nowrap; }
+  table.routes td .sub { color: var(--dim); font-size: 11.5px; line-height: 1.35; margin-top: 3px; }
+  table.routes td.act { padding-top: 5px; }
+  .seat-warn { color: var(--red); font-size: 12px; padding: 4px 0 0; }
+  .seat-warn b { cursor: pointer; color: var(--accent); font-weight: 400; text-decoration: underline; }
+  table.routes.keys-table td { vertical-align: middle; padding-top: 6px; padding-bottom: 6px; }
+  table.keys-table input { max-width: 100%; }
+  .pill {
+    font-size: 11px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--dim);
+  }
+  .pill.on { color: var(--green); border-color: rgba(52,199,89,.4); }
+  .pill.bad { color: var(--red); border-color: rgba(255,69,58,.45); }
+  .inspector-row select optgroup { color: var(--dim); }
+  .offline {
+    border: 1px solid rgba(255,69,58,.5); background: rgba(255,69,58,.08);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; color: var(--red);
+  }
+  .proof-step { display: flex; gap: 8px; padding: 3px 0; }
+  .proof-step .ok { color: var(--green); } .proof-step .bad { color: var(--red); }
+  #composer {
+    flex: none; background: var(--bg); border-top: 1px solid var(--line); padding: 8px 16px 12px;
+  }
+  #chat-log { max-height: 132px; overflow-y: auto; font-size: 12.5px; color: var(--dim); }
+  #chat-log:not(:empty) { margin-bottom: 8px; }
+  #chat-log .err { color: var(--red); }
+  #chat-log .okk { color: var(--green); }
+  .said-by { color: var(--accent); font-weight: 650; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+  .said-by .about { color: var(--dim); font-weight: 400; text-transform: none; letter-spacing: 0; }
+  .said-text { color: var(--text); padding: 3px 0 2px; }
+  .said-text.dim { color: var(--dim); }
+  .said-link { padding-top: 3px; }
+  .said-link a { color: var(--accent); word-break: break-all; }
+  button[hidden] { display: none !important; }
+  #chat-target:not(:empty) { margin-top: 8px; }
+  .reply {
+    display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 12.5px;
+    border: 1px solid rgba(var(--accent-rgb),.45); background: rgba(var(--accent-rgb),.08);
+    border-radius: 10px; padding: 8px 12px;
+  }
+  .reply .lead { color: var(--accent); font-weight: 650; flex: none; }
+  .reply .q { color: var(--text); }
+  .reply .note { color: var(--dim); }
+  .reply b {
+    cursor: pointer; margin-left: auto; color: var(--dim); font-weight: 400;
+    border: 1px solid var(--line); border-radius: 6px; padding: 0 8px;
+  }
+  .reply b:hover { color: var(--text); border-color: var(--accent); }
+  .proj { font-weight: 650; font-size: 14px; padding: 0 0 10px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+  #chat-row { display: flex; gap: 9px; align-items: center; }
+  #chat-input {
+    flex: 1; background: var(--card); color: var(--text); border: 1px solid var(--line);
+    border-radius: 10px; padding: 8px 12px; font-size: 13px; outline: none;
+  }
+  #chat-input:focus { border-color: var(--accent); }
+  button.idea {
+    background: rgba(var(--gold-rgb),.12); border-color: rgba(var(--gold-rgb),.5); color: var(--text); font-weight: 620;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  button.idea:hover { background: rgba(var(--gold-rgb),.24); border-color: var(--yellow); }
+  #inspector-body { display: flex; flex-direction: column; }
+  .inspector-row {
+    display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 10px; align-items: baseline;
+    padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: 12.5px;
+  }
+  .inspector-row:last-child { border-bottom: 0; }
+  .inspector-row .k {
+    color: var(--dim); font-size: 10.5px; letter-spacing: .6px; text-transform: uppercase; line-height: 1.7;
+  }
+  .inspector-row .v { min-width: 0; word-break: break-word; }
+  .inspector-row .v .sub { color: var(--dim); font-size: 11.5px; margin-top: 3px; }
+  .inspector-row select {
+    background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 7px;
+    padding: 3px 6px; max-width: 100%; font-size: 12.5px;
+  }
+  .inspector-row select:focus { border-color: var(--accent); outline: none; }
+  .inspector-row .v > select { width: 100%; }
+  .seat-model { display: grid; gap: 6px; margin-top: 5px; }
+  .seat-model select {
+    flex: 1; min-width: 0; font-size: 11.5px; line-height: 1.5; padding: 3px 6px; color: var(--dim);
+    background: var(--card2); border: 1px solid var(--line); border-radius: 7px;
+  }
+  .seat-model select:hover { color: var(--text); }
+  .seat-model select:focus { color: var(--text); border-color: var(--accent); outline: none; }
+  .budget-set { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .budget-set .per { color: var(--dim); }
+  .inspector-group { margin-top: 18px; }
+  .inspector-group > .rail-title { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+  button:focus-visible, summary:focus-visible, a:focus-visible,
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 3px;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  .rail-item > span:last-child { overflow-wrap: anywhere; min-width: 0; }
+  .welcome { max-width: 520px; margin: 48px auto; padding: 12px; }
+  .welcome-mark { position: relative; width: 48px; height: 48px; border: 3px solid #4a4a52;
+    border-radius: 50%; margin-bottom: 24px; }
+  .welcome-mark::before { content: ""; position: absolute; width: 14px; height: 14px;
+    left: 50%; top: -8px; transform: translateX(-50%); border-radius: 50%; background: var(--gold); }
+  .welcome h1 { font-size: 28px; line-height: 1.2; letter-spacing: -.6px; font-weight: 650; }
+  .welcome p { color: var(--dim); margin: 14px 0 24px; max-width: 420px; }
+  .welcome .steps { font-size: 12px; color: var(--dim); margin-top: 28px; line-height: 1.8; }
+  .form-help { color: var(--dim); font-size: 12px; margin: 6px 0 18px; }
+  header { flex-wrap: wrap; min-height: 56px; }
+  #project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+  #chat-input { min-width: 0; }
+  #chat-row, #chat-target, #chat-log { max-width: 1120px; margin-left: auto; margin-right: auto; }
+  @media (max-width: 1000px) {
+    #rail { width: 180px; }
+    #inspector { width: 280px; }
+    #scroll { padding: 16px; }
+    #stage-line { margin-left: 0; }
+    #inspector-toggle { margin-left: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+</style>
+</head>
+<body>
+  <div id="app">
+    <aside id="rail" aria-label="Projects">
+      <div id="rail-list"></div>
+    </aside>
+    <section id="main">
+      <header>
+        <span class="dot" id="status-dot"></span>
+        <span class="name">Agent Wheel</span>
+        <span class="headline" id="project-name"></span>
+        <span class="headline" id="stage-line"></span>
+        <span class="headline" id="budget-line"></span>
+        <button class="ghost" id="inspector-toggle" type="button" aria-controls="inspector" aria-expanded="false">Inspector</button>
+      </header>
+      <div id="activity"></div>
+      <div id="scroll">
+        <div id="notice"></div>
+        <div id="stack"></div>
+      </div>
+    </section>
+    <aside id="inspector" aria-label="Project inspector" hidden>
+      <div id="inspector-body"></div>
+    </aside>
+  </div>
+  <div id="composer">
+    <div id="chat-log" role="log" aria-live="polite"></div>
+    <form id="chat-form">
+      <div id="chat-row">
+        <input id="chat-input" aria-label="Idea or reply" autocomplete="off" placeholder="Type an idea, then press Submit Idea">
+        <button class="act idea" id="btn-idea" type="button" data-action="submit-idea"><span>&#128161;</span>Submit Idea</button>
+        <button class="act primary" id="btn-send" type="submit">Send</button>
+      </div>
+      <div id="chat-target"></div>
+    </form>
+  </div>
+<script>
+'use strict';
+(function () {
+  var KINDS = ['idea', 'experience', 'design', 'spec', 'plan'];
+  var TITLES = { idea: 'Idea', experience: 'Experience', design: 'Design', spec: 'Spec', plan: 'Plan' };
+  var STAGE_TITLES = { execution: 'Plan, executing', closure: 'Plan, final closure', done_complete: 'Done' };
+  var DEFAULT_PLACEHOLDER = 'Type an idea, then press Submit Idea';
+  var FORM_KINDS = ['experience', 'design', 'spec'];
+  var PROVIDERS = ['anthropic', 'openai', 'xai'];
+  var SKEY_IDS = ['skey-anthropic', 'skey-openai', 'skey-xai'];
+  // Keep drafts per project to prevent cross-project submissions.
+  var formDrafts = {};
+  function draftsFor() {
+    var id = selectedProject || (state && state.project ? state.project.id : '-');
+    if (!formDrafts[id]) formDrafts[id] = {};
+    return formDrafts[id];
+  }
+  var shell = window.__AW || { token: '', port: 0, shell: false };
+  var state = null;
+  var selectedProject = null;
+  var view = 'project';
+  var viewBefore = 'project';
+  var newDraft = { name: '', problem: '', solution: '' };
+  var attentionSeen = null;
+  var viewOpen = null;
+  var chatTarget = null;
+  var reopenPreview = null;
+  var log = [];
+  var registered = [];
+  var inspectorOpen = false;
+  // Persist disclosure state across polling renders.
+  var openDetails = {};
+  var feedOpen = false;
+  var feed = [];
+  var feedSince = null;
+  var settings = null;
+  var settingsChecked = false;
+  var settingsChecking = false;
+  var axAsked = false;
+  var axTrusted = null;
+  var setupHidden = false;
+  var dropKey = null;
+  var dropRoute = null;
+  var attachNote = null;
+  var recoveryText = null;
+  var bridgeWaiters = {};
+  var bridgeSeq = 0;
+
+  function detailsTag(key, cls, summary) {
+    return '<details class="' + cls + '"' + (openDetails[key] ? ' open' : '') +
+      '><summary data-action="details-toggle" data-arg="' + esc(key) + '">' + summary + '</summary>';
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function el(id) { return document.getElementById(id); }
+
+  // Cache only our last write; redundant DOM replacement loses focus, selections, and drafts.
+  function paint(box, html) {
+    if (!box || box.__aw === html) return;
+    box.__aw = html;
+    box.innerHTML = html;
+  }
+
+  // Restore password values directly; never interpolate secrets into HTML.
+  function carry(ids) {
+    var held = {};
+    for (var i = 0; i < ids.length; i++) {
+      var e = el(ids[i]);
+      if (e && e.value) held[ids[i]] = e.value;
+    }
+    return held;
+  }
+  function uncarry(held) {
+    for (var k in held) {
+      if (Object.prototype.hasOwnProperty.call(held, k)) {
+        var e = el(k);
+        if (e && !e.value) e.value = held[k];
+      }
+    }
+  }
+
+  function reg(sig, target, event, fn) {
+    registered.push(sig);
+    target.addEventListener(event, fn);
+  }
+
+  // A poll never takes a live selection away mid-copy.
+  function liveSelection() {
+    try {
+      var sel = window.getSelection ? window.getSelection() : null;
+      return Boolean(sel && sel.isCollapsed === false && String(sel).length > 0);
+    } catch (e) { return false; }
+  }
+
+  // Every call to the helper carries the launch token the shell injected; nothing else is reachable.
+  function api(path, opts) {
+    var o = opts || {};
+    var headers = { authorization: 'Bearer ' + shell.token };
+    if (o.body !== undefined) headers['content-type'] = 'application/json';
+    return fetch(path, {
+      method: o.method || 'GET',
+      headers: headers,
+      body: o.body === undefined ? undefined : JSON.stringify(o.body),
+    }).then(function (r) { return r.json(); });
+  }
+
+  function bridge(op, args) {
+    return new Promise(function (resolve) {
+      var id = 'b' + (++bridgeSeq);
+      var msg = Object.assign({ op: op, id: id }, args || {});
+      var handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.aw;
+      if (!handler) { resolve({ ok: false, error: 'not in the app window' }); return; }
+      bridgeWaiters[id] = resolve;
+      handler.postMessage(msg);
+    });
+  }
+  window.__awReply = function (id, payload) {
+    var w = bridgeWaiters[id];
+    if (w) { delete bridgeWaiters[id]; w(payload); }
+  };
+  window.__awRecovery = function (text) {
+    recoveryText = String(text || '');
+    render();
+  };
+  window.__awAccessibility = function (trusted) {
+    axTrusted = Boolean(trusted);
+    axAsked = false;
+    if (trusted) { setupHidden = false; addLog('accessibility granted, checking the routes again', 'okk'); }
+    render();
+    return loadSettings(true);
+  };
+
+  function addLog(text, cls) {
+    log.push({ text: text, cls: cls || '' });
+    if (log.length > 3) log.shift();
+    renderChat();
+  }
+
+  var SEAT_WORDS = { leader: 'Leader', builder: 'Builder', reviewer: 'Reviewer', human: 'You', system: 'The wheel' };
+  function aboutWords(about) {
+    if (!about) return '';
+    if (typeof about === 'string') return about;
+    if (about.kind) return TITLES[about.kind] || String(about.kind).replace(/_/g, ' ');
+    return '';
+  }
+
+  function renderChat() {
+    var html = '';
+    var mine = view === 'project' && state && state.project &&
+      (!selectedProject || state.project.id === selectedProject);
+    var lr = mine ? state.last_response : null;
+    if (lr && lr.text) {
+      var about = aboutWords(lr.about);
+      html += '<div class="said-by">' + esc(SEAT_WORDS[lr.seat] || lr.seat) +
+        (lr.route ? ' &middot; ' + esc(routeWords(lr.route)) : '') +
+        (about ? ' <span class="about">on the ' + esc(about) + '</span>' : '') +
+        (lr.decision ? ' <span class="badge ' + esc(lr.decision) + '">' + esc(lr.decision) + '</span>' : '') +
+        '</div>';
+      html += '<div class="said-text">' + esc(lr.text) + '</div>';
+      if (lr.repair) html += '<div class="said-text dim">earliest repair: ' + esc(lr.repair) + '</div>';
+    }
+    if (mine && state.status === 'purple' && state.artifact) {
+      html += '<div class="said-link">Final product: <a href="#" data-action="reveal" data-arg="' +
+        esc(state.artifact.path || '') + '">' + esc(state.artifact.product_link) + '</a></div>';
+    }
+    for (var i = 0; i < log.length; i++) {
+      html += '<div class="' + log[i].cls + '">' + esc(log[i].text) + '</div>';
+    }
+    paint(el('chat-log'), html);
+  }
+
+  function post(input) {
+    if (!state) return Promise.resolve();
+    return api('/api/turn', { method: 'POST', body: { input: input, project: selectedProject } }).then(function (res) {
+      if (res.ok) addLog('ok: ' + (res.result ? JSON.stringify(res.result).slice(0, 160) : input.type), 'okk');
+      else addLog(res.error || 'error', 'err');
+      return poll().then(function () { return res; });
+    }).catch(function (err) { addLog('offline: ' + err.message, 'err'); });
+  }
+
+  function createProject(name, problem, solution) {
+    addLog('creating ' + name + '...', '');
+    return api('/api/spool', { method: 'POST', body: { name: name, problem: problem, solution: solution } })
+      .then(function (res) {
+        if (res.mcp) {
+          addLog('project created', 'okk');
+          selectedProject = res.project_id || null;
+          view = 'project';
+          newDraft = { name: '', problem: '', solution: '' };
+        } else addLog(res.error || 'the project was not created', 'err');
+        return poll().then(function () { return res; });
+      }).catch(function (err) { addLog('offline: ' + err.message, 'err'); });
+  }
+
+  function currentKind() {
+    var f = state && state.frontier;
+    if (!f) return 'idea';
+    if (f.stale && f.stale.length) return f.stale[0];
+    if (STAGE_TITLES[f.stage]) return 'plan';
+    return KINDS.indexOf(f.stage) >= 0 ? f.stage : 'idea';
+  }
+
+  function badge(v) {
+    return '<span class="badge ' + esc(v.state) + '">v' + v.v + ' ' + esc(v.state) + '</span>';
+  }
+
+  var FIELD_ORDER = {
+    idea: ['problem', 'solution'],
+    experience: ['actors', 'journeys', 'edge_cases', 'usability', 'acceptance'],
+    design: ['screens', 'visual', 'content', 'interactions', 'states', 'acceptance'],
+    spec: ['requirements', 'constraints', 'security', 'platform', 'release',
+      'providers_tools', 'preauthorized_high_risk'],
+    plan: [],
+  };
+  var TECHNICAL = {
+    spec: ['providers_tools', 'preauthorized_high_risk'],
+    experience: [], design: [], idea: [], plan: [],
+  };
+  var UNPRINTED = { spec: ['route_allowlist', 'budget'] };
+  var FIELD_LABEL = {
+    problem: 'Problem', solution: 'Solution',
+    actors: 'Who it is for', journeys: 'Journeys', edge_cases: 'Edge cases', usability: 'Usability',
+    acceptance: 'Acceptance', screens: 'Screens', visual: 'Visual rules', content: 'Content rules',
+    interactions: 'Interactions', states: 'Screen states',
+    requirements: 'Requirements', constraints: 'Constraints', platform: 'Platform',
+    release: 'Release', security: 'Security',
+    providers_tools: 'Tools the build may use', preauthorized_high_risk: 'Pre-authorized high-risk steps',
+  };
+  var ARTIFACT_WORDS = {
+    single_file_html: 'one self-contained HTML file',
+    directory: 'a folder of files',
+    archive: 'an archive',
+    binary: 'a single executable',
+  };
+  var LINK_WORDS = { file_url: 'opened straight from disk', https_url: 'opened over https' };
+
+  function labelOf(key) { return FIELD_LABEL[key] || String(key).replace(/_/g, ' '); }
+  function homeShort(p) { return String(p || '').replace(/^\/Users\/[^/]+/, '~'); }
+  function isPlainObject(v) { return Boolean(v) && typeof v === 'object' && !Array.isArray(v); }
+
+  function shapeOf(key, v) {
+    if (v == null || v === '') return 'empty';
+    if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return 'text';
+    if (Array.isArray(v)) {
+      if (!v.length) return 'empty';
+      if (v.every(function (x) { return typeof x === 'string'; })) return 'list';
+      if (v.every(function (x) { return isPlainObject(x) && x.name && Array.isArray(x.steps); })) return 'journeys';
+      if (v.every(function (x) { return isPlainObject(x) && x.id && x.name; })) return 'named';
+      if (v.every(function (x) { return isPlainObject(x) && x.id; })) return 'rules';
+      if (v.every(isPlainObject)) return 'records';
+      return 'unknown';
+    }
+    if (isPlainObject(v)) {
+      if (key === 'release') return 'settings';
+      return Object.keys(v).every(function (k) { return typeof v[k] !== 'object' || v[k] === null; })
+        ? 'settings' : 'unknown';
+    }
+    return 'unknown';
+  }
+
+  function listHtml(items) {
+    var out = '';
+    for (var i = 0; i < items.length; i++) out += '<li>' + esc(items[i]) + '</li>';
+    return fieldval('<ul>' + out + '</ul>');
+  }
+
+  function flatText(v, sep) {
+    return Array.isArray(v) ? v.join(sep) : (isPlainObject(v) ? JSON.stringify(v) : String(v));
+  }
+  function kvRows(obj, skip, format) {
+    var out = '';
+    var keys = Object.keys(obj);
+    for (var i = 0; i < keys.length; i++) {
+      if (skip && skip.indexOf(keys[i]) >= 0) continue;
+      var text = format ? format(keys[i], obj[keys[i]]) : flatText(obj[keys[i]], ', ');
+      out += '<div class="kv"><span class="k">' + esc(labelOf(keys[i])) + '</span><span>' + esc(text) + '</span></div>';
+    }
+    return out;
+  }
+  function fieldval(inner) { return '<div class="fieldval">' + inner + '</div>'; }
+
+  function rulesHtml(items) {
+    var out = '';
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      var keys = Object.keys(it).filter(function (k) { return k !== 'id'; });
+      var body = keys.map(function (k) {
+        var text = flatText(it[k], '; ');
+        return keys.length > 1 ? labelOf(k) + ': ' + text : text;
+      }).join('; ');
+      out += '<div class="rule"><span class="tag">' + esc(it.id) + '</span><span>' + esc(body) + '</span></div>';
+    }
+    return fieldval(out);
+  }
+
+  function journeysHtml(items) {
+    var out = '';
+    for (var i = 0; i < items.length; i++) {
+      var j = items[i];
+      var steps = '';
+      for (var s = 0; s < (j.steps || []).length; s++) steps += '<li>' + esc(j.steps[s]) + '</li>';
+      out += '<div class="sub-block"><div class="sub-title">' + esc(j.name) + '</div><ol>' + steps + '</ol></div>';
+    }
+    return fieldval(out);
+  }
+
+  function namedHtml(items) {
+    var out = '';
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i];
+      out += '<div class="sub-block"><div class="sub-title">' + esc(it.name) +
+        ' <span class="tag">' + esc(it.id) + '</span></div>' + kvRows(it, ['id', 'name']) + '</div>';
+    }
+    return fieldval(out);
+  }
+
+  function recordsHtml(items) {
+    var out = '';
+    for (var i = 0; i < items.length; i++) out += '<div class="sub-block">' + kvRows(items[i]) + '</div>';
+    return fieldval(out);
+  }
+
+  function settingsProse(key, v) {
+    if (key === 'release') {
+      var what = ARTIFACT_WORDS[v.artifact_type] || String(v.artifact_type || 'the finished product').replace(/_/g, ' ');
+      var where = v.output_dir ? ', written to ' + homeShort(v.output_dir) : '';
+      var how = LINK_WORDS[v.link_kind] ? ', ' + LINK_WORDS[v.link_kind] : '';
+      return 'The finished product is ' + what + where + how + '.';
+    }
+    return null;
+  }
+
+  function settingsHtml(key, v) {
+    var prose = settingsProse(key, v);
+    var pairs = kvRows(v, null, function (k, raw) { return k === 'output_dir' ? homeShort(raw) : String(raw); });
+    return fieldval((prose ? '<div>' + esc(prose) + '</div>' : '') +
+      '<div style="margin-top:' + (prose ? '6px' : '0') + ';opacity:.85">' + pairs + '</div>');
+  }
+
+  function sectionHtml(key, v) {
+    var shape = shapeOf(key, v);
+    if (shape === 'empty') return '<div class="fieldval empty">empty</div>';
+    if (shape === 'text') return '<div class="fieldval">' + esc(v) + '</div>';
+    if (shape === 'list') return listHtml(v);
+    if (shape === 'journeys') return journeysHtml(v);
+    if (shape === 'named') return namedHtml(v);
+    if (shape === 'rules') return rulesHtml(v);
+    if (shape === 'records') return recordsHtml(v);
+    if (shape === 'settings') return settingsHtml(key, v);
+    return '<div class="fieldval">' + esc(JSON.stringify(v, null, 2)) + '</div>';
+  }
+
+  function isTechnical(kind, key, v) {
+    var named = TECHNICAL[kind] || [];
+    return named.indexOf(key) >= 0 || shapeOf(key, v) === 'unknown';
+  }
+
+  function renderSections(kind, content) {
+    var order = FIELD_ORDER[kind] || [];
+    var hidden = UNPRINTED[kind] || [];
+    var keys = Object.keys(content).filter(function (k) { return hidden.indexOf(k) < 0; });
+    var known = order.filter(function (k) { return keys.indexOf(k) >= 0; });
+    var extra = keys.filter(function (k) { return order.indexOf(k) < 0; }).sort();
+    var all = known.concat(extra);
+    var plain = '';
+    var tech = '';
+    var techCount = 0;
+    for (var i = 0; i < all.length; i++) {
+      var k = all[i];
+      var block = '<div class="fieldname">' + esc(labelOf(k)) + '</div>' + sectionHtml(k, content[k]);
+      if (isTechnical(kind, k, content[k])) { tech += block; techCount++; } else plain += block;
+    }
+    var html = plain;
+    if (techCount) {
+      html += detailsTag('tech:' + kind, 'tech', 'Technical details (' + techCount + ')') + tech + '</details>';
+    }
+    html += detailsTag('raw:' + kind, 'raw', 'Exact values');
+    if (openDetails['raw:' + kind]) html += '<pre>' + esc(JSON.stringify(content, null, 2)) + '</pre>';
+    html += '</details>';
+    return html;
+  }
+
+  function contentOf(node) {
+    return (node.staged && node.staged.content) || (node.accepted && node.accepted.content) || node.draft || null;
+  }
+
+  function renderIdeaBody(node) {
+    var content = contentOf(node) || {};
+    var html = '';
+    html += '<div class="fieldname">Problem</div>';
+    html += content.problem ? '<div class="fieldval">' + esc(content.problem) + '</div>'
+      : '<div class="fieldval empty">what is failing, for whom, and in what situation</div>';
+    html += '<div class="fieldname">Solution</div>';
+    html += content.solution ? '<div class="fieldval">' + esc(content.solution) + '</div>'
+      : '<div class="fieldval empty">the observable success state that would mean the problem is solved</div>';
+    if (!node.accepted || node.stale || node.reopened) {
+      html += '<div class="chips">';
+      var chips = (state && state.chips) || [];
+      for (var i = 0; i < chips.length; i++) {
+        var c = chips[i];
+        html += '<span class="chip" data-action="chip" data-arg="' + esc(c.id) + '">' +
+          '<span class="f">' + esc(c.field) + '</span>' + esc(c.prompt) + '</span>';
+      }
+      html += '</div>';
+    }
+    if (node.reopened && node.accepted && formLegal('idea')) html += renderFormEditor('idea', node);
+    return html;
+  }
+
+  function renderFormBody(kind, node) {
+    var content = contentOf(node);
+    if (!content) return '<div class="fieldval empty">nothing captured yet</div>';
+    return renderSections(kind, content);
+  }
+
+  function formLegal(kind) {
+    var legal = (state && state.frontier && state.frontier.next_legal) || [];
+    return legal.indexOf('form:' + kind) >= 0;
+  }
+
+  function renderFormEditor(kind, node) {
+    var seed;
+    if (draftsFor()[kind] != null) seed = draftsFor()[kind];
+    else {
+      var body = node.draft || (node.reopened ? contentOf(node) : null) ||
+        (state && state.form_templates && state.form_templates[kind]) || {};
+      seed = JSON.stringify(body, null, 2);
+    }
+    return '<div class="form-editor"><div class="fieldname">Strict ' + esc(TITLES[kind]) +
+      ' form (JSON; validated against its schema before commit)</div>' +
+      '<textarea id="form-' + kind + '" spellcheck="false">' + esc(seed) + '</textarea>' +
+      '<div class="actions"><button class="act primary" data-action="form-submit" data-arg="' + kind + '">Submit ' +
+      esc(TITLES[kind]) + '</button></div></div>';
+  }
+
+  function walkLeaves(node, out) {
+    out = out || [];
+    if (!node) return out;
+    if (!node.decomposes_into || !node.decomposes_into.length) out.push(node);
+    else for (var i = 0; i < node.decomposes_into.length; i++) walkLeaves(node.decomposes_into[i], out);
+    return out;
+  }
+
+  function leafStateOf(leaf) {
+    var o = state && state.leaves && state.leaves[leaf.id];
+    if (o && o.executing) return 'executing';
+    if (o && o.state) return o.state;
+    return leaf.trial ? leaf.trial.status : 'untried';
+  }
+
+  function renderPlanBody(node) {
+    var content = contentOf(node);
+    if (!content) return '<div class="fieldval empty">generated from the accepted Idea, Experience, Design, and Spec; tried read-only, then executed leaf by leaf</div>';
+    var html = '';
+    var leaves = walkLeaves(content.root || content);
+    var doneCount = 0;
+    var rows = '';
+    for (var i = 0; i < leaves.length; i++) {
+      var s = leafStateOf(leaves[i]);
+      if (s === 'done') doneCount++;
+      rows += '<li><span class="badge ' + esc(s) + '">' + esc(s) + '</span> ' + esc(leaves[i].title) +
+        ' <span class="tag">' + esc(leaves[i].id) + '</span></li>';
+    }
+    var pct = leaves.length ? Math.round((doneCount / leaves.length) * 100) : 0;
+    html += '<div class="fieldname">Leaves (' + doneCount + ' of ' + leaves.length + ' done)</div>' +
+      '<div class="progress"><span style="width:' + pct + '%"></span></div>' +
+      '<div class="fieldval"><ul>' + rows + '</ul></div>';
+    if (content.decision) {
+      html += '<div class="fieldname">Decision</div><div class="fieldval">' +
+        esc(content.decision.chosen ? content.decision.chosen + ' (' + content.decision.basis + '): ' + content.decision.rationale : 'not yet chosen') +
+        '</div>';
+    }
+    if (state.execution && !state.execution.unlocked && node.accepted) {
+      html += '<div class="fieldname">Execution</div><div class="fieldval">' + esc(state.execution.reason) + '</div>';
+    }
+    var branches = Object.keys(state.executions || {});
+    if (branches.length) {
+      var ex = '';
+      for (var j = 0; j < branches.length; j++) {
+        var e = state.executions[branches[j]];
+        ex += '<div class="rule"><span class="tag">' + esc(e.state) + '</span><span>' +
+          esc(e.leaves.join(', ')) + ', tests ' + esc(e.tests.passed + ' passed, ' + e.tests.failed + ' failed') +
+          '</span></div>';
+      }
+      html += '<div class="fieldname">Executions</div><div class="fieldval">' + ex + '</div>';
+    }
+    if (state.closure_proof && !state.closure_proof.all_ok && state.closure_proof.first_failure) {
+      html += '<div class="fieldname">Closure proof</div><div class="fieldval" style="color:var(--red)">' + esc(state.closure_proof.first_failure.claim + ': ' + state.closure_proof.first_failure.detail) + '</div>';
+    }
+    if (state.closure) {
+      html += '<div class="fieldname">Final closure (' + esc(state.closure.state) + ')</div><div class="fieldval">';
+      var steps = state.closure.steps || [];
+      for (var k = 0; k < steps.length; k++) {
+        var st = steps[k];
+        html += '<div class="proof-step"><span class="' + (st.ok ? 'ok' : 'bad') + '">' + (st.ok ? 'ok' : 'fail') +
+          '</span><span>' + esc(st.from) + ' &rarr; ' + esc(st.to) + ': ' + esc(st.detail) + '</span></div>';
+      }
+      html += '</div>';
+    }
+    return html;
+  }
+
+  function previewText(p) {
+    if (!p.regenerates) return 'No claim changed: nothing goes back to untried; every leaf stays as it is.';
+    var parts = [];
+    if (p.changed.length) parts.push('changed ' + p.changed.join(', '));
+    if (p.removed.length) parts.push('removed ' + p.removed.join(', '));
+    if (p.added.length) parts.push('added ' + p.added.join(', '));
+    return 'Accepting walks by claim (' + parts.join('; ') + '): ' +
+      (p.leaves.length ? p.leaves.length + ' leaves go back to untried - ' + p.leaves.join(', ') : 'no leaf goes back') +
+      '; the Plan is regenerated and looked at again.';
+  }
+
+  function renderValidation(kind) {
+    var pv = state.pending_validation;
+    if (!pv || pv.kind !== kind) return '';
+    var def = pv.def || null;
+    var seatAuthored = Boolean(pv.author && pv.author.seat && pv.author.seat !== 'human');
+    var q = def && def.question ? def.question :
+      'A fresh review turn must accept this staged ' + TITLES[kind] + '; the turn that staged it cannot.';
+    var html = '<div class="panel"><div class="q">' + esc(q) + '</div>';
+    if (pv.preview) html += '<div class="detail">' + esc(previewText(pv.preview)) + '</div>';
+    if (seatAuthored) {
+      html += '<div class="detail">Staged by the ' + esc(pv.author.seat) + ' seat; the independent review seat accepts or gaps it.</div>';
+    } else if (def) {
+      html += '<div class="actions">';
+      for (var i = 0; i < def.actions.length; i++) {
+        var a = def.actions[i];
+        html += '<button class="act' + (a === 'ACCEPT' ? ' primary' : ' danger') + '" data-action="validate" data-arg="' + esc(a) + '">' +
+          esc(a === 'REJECT_RESTAGE' ? 'Reject (restage)' : a.replace(/_/g, ' ')) + '</button>';
+      }
+      html += '</div>';
+    }
+    return html + '</div>';
+  }
+
+  function renderGate(kind) {
+    var g = state.gate;
+    if (!g || !g.def || g.def.kind !== kind) return '';
+    var html = '<div class="panel gate"><div class="q">' + esc(g.def.question) + '</div>' +
+      (g.detail ? '<div class="detail">' + esc(g.detail) + '</div>' : '') +
+      (g.preview ? '<div class="detail">' + esc(previewText(g.preview)) + '</div>' : '') + '<div class="actions">';
+    var params = g.def.params || {};
+    for (var i = 0; i < g.def.actions.length; i++) {
+      var a = g.def.actions[i];
+      // Gate parameters come from the catalog, never from reply text.
+      var names = Object.keys(params[a] || {});
+      for (var j = 0; j < names.length; j++) {
+        var p = params[a][names[j]];
+        html += '<label class="param">' + esc(names[j]) + ' <select id="gate-param-' + esc(a) + '-' + esc(names[j]) + '">';
+        for (var k = 0; k < p.enum.length; k++) {
+          html += '<option value="' + esc(p.enum[k]) + '"' + (p.enum[k] === p.default ? ' selected' : '') + '>' + esc(p.enum[k]) + '</option>';
+        }
+        html += '</select></label>';
+      }
+      html += '<button class="act' + (a === 'APPROVE' || a === 'ACCEPT' ? ' primary' : (a === 'REJECT' || a === 'REJECT_RESTAGE' || a === 'STOP') ? ' danger' : '') +
+        '" data-action="gate" data-arg="' + esc(a) + '">' + esc(a.replace(/_/g, ' ')) + '</button>';
+    }
+    html += '</div></div>';
+    return html;
+  }
+
+  function renderReopenPreview(kind) {
+    var p = reopenPreview;
+    var leaves = p.leaves_back_to_untried || [];
+    var text = leaves.length
+      ? 'Reopening ' + TITLES[kind] + ': its claims (' + (p.claims || []).join(', ') + ') serve ' + leaves.length + ' leaves that can go back to untried - ' +
+        leaves.map(function (l) { return l.id + ' (' + l.state + ')'; }).join(', ') + '. The successor version\'s claim diff decides which of them go back; a version whose claims did not change moves nothing.'
+      : 'Reopening ' + TITLES[kind] + ': no accepted Plan leaf serves its claims yet; nothing goes back.';
+    return '<div class="panel"><div class="q">' + esc(text) + '</div><div class="actions">' +
+      '<button class="act primary" data-action="reopen-confirm" data-arg="' + kind + '">Reopen ' + esc(TITLES[kind]) + '</button>' +
+      '<button class="act" data-action="reopen-cancel" data-arg="' + kind + '">Keep</button></div></div>';
+  }
+
+  function renderNode(kind, current) {
+    var node = (state && state.nodes && state.nodes[kind]) || null;
+    var open = viewOpen === kind && Boolean(node);
+    // Closed UI shows the name only; the Idea row shows the project name once the project exists.
+    var title = (kind === 'idea' && state && state.project) ? state.project.name : TITLES[kind];
+    var badges = '';
+    var line = '';
+    if (node && open) {
+      for (var i = 0; i < (node.versions || []).length; i++) badges += badge(node.versions[i]);
+      if (node.stale) badges += '<span class="badge stale">stale</span>';
+      if (node.reopened) badges += '<span class="badge reopened">reopened</span>';
+      line = node.line;
+    }
+    var html = '<div class="node' + (current ? ' current' : '') + '"><button type="button" class="node-head" aria-expanded="' + open + '" data-action="toggle" data-arg="' + kind + '">' +
+      '<span class="caret">' + (open ? '▾' : '▸') + '</span>' +
+      '<span class="node-title">' + esc(title) + '</span>' + badges +
+      '<span class="node-line">' + esc(line) + '</span></button>';
+    if (open) {
+      html += '<div class="node-body">';
+      if (kind === 'idea') html += renderIdeaBody(node);
+      else if (kind === 'plan') html += renderPlanBody(node);
+      else html += renderFormBody(kind, node);
+      if (FORM_KINDS.indexOf(kind) >= 0 && formLegal(kind)) html += renderFormEditor(kind, node);
+      if (kind === 'design' && formLegal('design') && (state.frontier.next_legal || []).indexOf('seat_dispatch') >= 0) {
+        html += '<div class="actions" style="margin-top:8px"><button class="act" data-action="propose-design">Propose with the Leader seat</button></div>';
+      }
+      if (node.accepted && !node.reopened && !node.staged && (state.frontier.next_legal || []).indexOf('reopen') >= 0) {
+        var mineToConfirm = reopenPreview && reopenPreview.kind === kind &&
+          (!reopenPreview.project || reopenPreview.project === selectedProject);
+        if (mineToConfirm) html += renderReopenPreview(kind);
+        else html += '<div class="actions" style="margin-top:8px"><button class="act" data-action="reopen" data-arg="' + kind + '">Reopen ' + esc(TITLES[kind]) + '</button></div>';
+      }
+      if (node.rejected_note) {
+        html += '<div class="fieldval" style="margin-top:8px;color:var(--red)">' + esc(node.rejected_note) + '</div>';
+      }
+      html += renderGate(kind);
+      html += renderValidation(kind);
+      html += '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  function setupCover() {
+    var routes = (settings && settings.routes) || [];
+    if (!settingsChecked || !routes.length || setupHidden || view === 'settings') return '';
+    for (var i = 0; i < routes.length; i++) if (routes[i].ready) return '';
+    return '<div class="cover"><div class="cover-card">' +
+      '<div class="cover-t">Nothing is connected yet</div>' +
+      '<div class="cover-d">Connect an assistant when you are ready to build. You can start shaping your idea now.</div>' +
+      '<div class="actions">' +
+      '<button class="act primary" data-action="settings">Connections</button>' +
+      '<button class="act" data-action="setup-ax">Setup Accessibility</button>' +
+      '<button class="act" data-action="setup-hide">Later</button></div></div></div>';
+  }
+
+  function renderWelcome() {
+    return '<div class="welcome"><div class="welcome-mark" aria-hidden="true"></div>' +
+      '<h1>Start with a problem.<br>Build toward a solution.</h1>' +
+      '<p>Give your project a name, describe what needs to change, and define what success looks like.</p>' +
+      '<button class="act primary" data-action="new-project">Create your first project</button>' +
+      '<div class="steps">Idea &rarr; Experience &rarr; Design &rarr; Spec &rarr; Plan &rarr; Done</div></div>';
+  }
+
+  function renderNewProject() {
+    return '<div class="page"><div class="page-head"><span class="t">New Project</span><span class="grow"></span>' +
+      '<button class="act small" data-action="new-project-cancel">Cancel</button></div>' +
+      '<div class="page-body"><div class="hint">Start with the change you want to make. You will shape the experience and design next.</div>' +
+      '<label class="fieldname" for="new-name">Project name</label><input id="new-name" autocomplete="off" placeholder="A short, memorable name" value="' + esc(newDraft.name) + '">' +
+      '<label class="fieldname" for="new-problem">Problem</label><textarea id="new-problem" aria-describedby="problem-help" style="min-height:100px" placeholder="What is difficult today?">' + esc(newDraft.problem) + '</textarea>' +
+      '<div class="form-help" id="problem-help">Who is affected, and when does it happen?</div>' +
+      '<label class="fieldname" for="new-solution">Solution</label><textarea id="new-solution" aria-describedby="solution-help" style="min-height:100px" placeholder="What should be possible instead?">' + esc(newDraft.solution) + '</textarea>' +
+      '<div class="form-help" id="solution-help">Describe the result someone can see or use.</div>' +
+      '<button class="act primary" data-action="submit-idea">Create project</button>' +
+      '</div></div>';
+  }
+
+  function codeWords(row) {
+    switch (row.code) {
+      case 'ok': return row.binary ? 'found at ' + row.binary : 'ready';
+      case 'no_key': return 'no API key is saved for ' + (row.provider || 'this provider');
+      case 'missing_binary': return 'the ' + (row.binary || 'route\'s') + ' command is not on the app\'s PATH';
+      case 'no_command': return 'this route has no command to run';
+      case 'not_signed_in': return 'signed out. Run: ' + (row.sign_in || 'its own login command');
+      case 'no_session': return 'no session is attached yet';
+      case 'app_unavailable': return 'the app could not be reached';
+      case 'surface_unknown': return 'this build has no way to drive that surface';
+      case 'detect_failed': return 'the app surfaces could not be read';
+      case 'gate_new_session': return 'the app is waiting for a new session to be started';
+      case 'gate_new_idea': return 'the app is waiting on a new idea';
+      case 'gate_first_time_ax': return 'the app needs its first accessibility approval';
+      case 'unknown_route': return 'this route is not one the transport has';
+      case 'check_failed': return 'this route could not be checked';
+      default: return row.reason || 'not ready';
+    }
+  }
+
+  function optionalRoute(row) {
+    return row.code === 'no_key';
+  }
+
+  function unavailableRoute(row) {
+    return row.code === 'surface_unknown' || row.code === 'unknown_route';
+  }
+
+  function axBlocked(row) {
+    return Boolean(row.ax_gated) && row.accessibility === false;
+  }
+
+  function routeFix(row) {
+    if (row.ready) {
+      if (row.surface === 'api') {
+        return dropKey === row.provider
+          ? { action: 'settings-key-delete', arg: row.provider, label: 'Remove the key', danger: true }
+          : { action: 'settings-drop-key', arg: row.provider, label: 'Disconnect' };
+      }
+      // Offer sign-out only for CLIs that support it.
+      if (row.sign_out) {
+        return dropRoute === row.id
+          ? { action: 'settings-signout', arg: row.id, label: 'Sign out', danger: true }
+          : { action: 'settings-drop-route', arg: row.id, label: 'Disconnect' };
+      }
+      return null;
+    }
+    if (axBlocked(row)) return null;
+    if (optionalRoute(row)) {
+      return { action: 'settings-add-key', arg: row.provider, label: 'Connect' };
+    }
+    if (row.code === 'gate_first_time_ax') {
+      return { action: 'settings-ax', arg: '', label: 'Setup' };
+    }
+    return null;
+  }
+
+  function routeRank(row) {
+    if (row.ready) return 0;
+    if (typeof row.ready !== 'boolean') return 1;
+    if (unavailableRoute(row)) return 4;
+    if (optionalRoute(row)) return 3;
+    return 2;
+  }
+
+  function sortedRoutes(routes) {
+    return routes.map(function (row, i) { return { row: row, i: i }; })
+      .sort(function (a, b) { return (routeRank(a.row) - routeRank(b.row)) || (a.i - b.i); })
+      .map(function (h) { return h.row; });
+  }
+
+  function routeWhy(row) {
+    if (typeof row.ready !== 'boolean' || row.ready) return '';
+    if (optionalRoute(row) || unavailableRoute(row)) return '';
+    if (axBlocked(row)) return 'waiting on Accessibility';
+    if (row.surface === 'app' && row.code === 'no_session') {
+      return 'no session yet. Attach it from a project, in the Inspector';
+    }
+    return codeWords(row);
+  }
+
+  function appsWords(rows) {
+    var names = [];
+    for (var i = 0; i < rows.length; i++) {
+      var n = rows[i].provider;
+      if (n && names.indexOf(n) < 0) names.push(n);
+    }
+    if (!names.length) return 'other apps';
+    if (names.length === 1) return 'the ' + names[0] + ' app';
+    return 'the ' + names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] + ' apps';
+  }
+
+  function routeStatus(row) {
+    if (typeof row.ready !== 'boolean') return '<span class="pill">not checked</span>';
+    if (row.ready) return '<span class="pill on">set up</span>';
+    if (optionalRoute(row)) return '<span class="pill">needs a key</span>';
+    if (unavailableRoute(row)) return '<span class="pill">not in this build</span>';
+    return '<span class="pill bad">not set up</span>';
+  }
+
+  function degradedRoutes() {
+    var health = (state && state.route_health) || {};
+    var out = [];
+    for (var id in health) {
+      if (Object.prototype.hasOwnProperty.call(health, id) && health[id] && health[id].degraded) {
+        out.push({ id: id, h: health[id] });
+      }
+    }
+    return out;
+  }
+
+  function whenWords(iso) {
+    var t = Date.parse(iso || '');
+    if (!t) return '';
+    var mins = Math.round((Date.now() - t) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    var hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + (hrs === 1 ? ' hour ago' : ' hours ago');
+    var days = Math.round(hrs / 24);
+    return days + (days === 1 ? ' day ago' : ' days ago');
+  }
+
+  function renderSettingsPage() {
+    var s = settings || { routes: [], seats: null, keys: [] };
+    var routes = s.routes || [];
+    var html = '<div class="page"><div class="page-head"><span class="t">Connections</span><span class="grow"></span>' +
+      '<button class="act small" data-action="settings-check">' + (settingsChecking ? 'Checking...' : 'Check connections') + '</button>' +
+      '<button class="act small" data-action="settings-close">Close</button></div><div class="page-body">';
+
+    var ready = 0;
+    for (var c1 = 0; c1 < routes.length; c1++) if (routes[c1].ready) ready += 1;
+    html += '<div class="fieldname">Routes' +
+      (settingsChecked && routes.length ? '<span class="count">' + ready + ' of ' + routes.length + ' set up</span>' : '') +
+      '</div>';
+    if (!routes.length) html += '<div class="fieldval empty">reading the route table...</div>';
+    else {
+      var blocked = routes.filter(axBlocked);
+      if (blocked.length) {
+        html += '<div class="panel" style="margin:8px 0"><div class="q">Agent Wheel needs permission to ' +
+          'control ' + esc(appsWords(blocked)) + '.</div>' +
+          '<div class="detail">macOS asks again after every update.</div><div class="actions">' +
+          '<button class="act small primary" data-action="settings-ax">Setup</button></div>' +
+          (axAsked ? '<div class="detail" style="margin-top:8px">Turn Agent Wheel on in that list. This ' +
+            'page updates itself when you do.</div>' : '') +
+          '</div>';
+      }
+      html += '<div class="table-scroll"><table class="routes"><thead><tr>' +
+        '<th>Provider</th><th class="grow">Route</th><th>Type</th><th class="right">Status</th>' +
+        '<th class="right"></th></tr></thead><tbody>';
+      var ordered = sortedRoutes(routes);
+      for (var r2 = 0; r2 < ordered.length; r2++) {
+        var rt = ordered[r2];
+        var checked = typeof rt.ready === 'boolean';
+        var fix = checked ? routeFix(rt) : null;
+        var why = routeWhy(rt);
+        html += '<tr>' +
+          '<td class="prov">' + esc(rt.provider) + '</td>' +
+          '<td>' + esc(rt.label) + (why ? '<div class="sub">' + esc(why) + '</div>' : '') + '</td>' +
+          '<td class="type">' + esc(rt.surface) + '</td>' +
+          '<td class="right">' + routeStatus(rt) + '</td>' +
+          '<td class="right act">' + (fix
+            ? '<button class="act small' + (fix.danger ? ' danger' : '') + '" data-action="' + esc(fix.action) +
+              '" data-arg="' + esc(fix.arg) + '">' + esc(fix.label) + '</button>'
+            : '') + '</td></tr>';
+      }
+      html += '</tbody></table></div>';
+    }
+    if (!settingsChecked && routes.length) {
+      html += '<div class="hint" style="margin-top:8px">Check connections asks each route what it would ' +
+        'find at send time. It costs nothing and sends no prompt.</div>';
+    }
+
+    html += detailsTag('advanced', 'tech', 'Advanced: API keys');
+    html += '<div class="hint">A key is written to the macOS Keychain by the app itself and is never stored by the wheel.</div>';
+    html += '<div class="table-scroll"><table class="routes keys-table"><thead><tr>' +
+      '<th>Provider</th><th class="grow">Key</th><th>Held</th><th class="right"></th></tr></thead><tbody>';
+    for (var p = 0; p < PROVIDERS.length; p++) {
+      var prov = PROVIDERS[p];
+      var held = (s.keys || []).indexOf(prov) >= 0;
+      html += '<tr><td class="prov">' + esc(prov) + '</td>' +
+        '<td><input id="skey-' + esc(prov) + '" type="password" placeholder="' +
+          (held ? 'replace the stored key' : 'API key') + '"></td>' +
+        '<td>' + (held ? '<span class="pill on">key held</span>' : '<span class="pill">no key</span>') + '</td>' +
+        '<td class="right"><button class="act small" data-action="settings-key-save" data-arg="' + esc(prov) + '">Save</button> ' +
+        '<button class="act small danger" data-action="settings-key-delete" data-arg="' + esc(prov) + '">Remove</button></td>' +
+        '</tr>';
+    }
+    html += '</tbody></table></div>';
+    html += '</details>';
+    return html + '</div></div>';
+  }
+
+  function seatSelect(seat, cur) {
+    var routes = (settings && settings.routes) || [];
+    var pool = routes.map(function (row) { return row.id; });
+    if (cur && pool.indexOf(cur) < 0) pool.unshift(cur);
+    return '<select id="seat-' + esc(seat) + '" data-seat="' + esc(seat) + '" aria-label="' + esc(seat) + ' provider">' +
+      pool.map(function (id) {
+        return '<option value="' + esc(id) + '"' + (id === cur ? ' selected' : '') + '>' + esc(routeWords(id)) + '</option>';
+      }).join('') + '</select>';
+  }
+
+  function seatWarning(routeId) {
+    var routes = (settings && settings.routes) || [];
+    var row = null;
+    for (var i = 0; i < routes.length; i++) if (routes[i].id === routeId) row = routes[i];
+    if (!row || typeof row.ready !== 'boolean' || row.ready) return '';
+    var why = axBlocked(row) ? 'Accessibility is not granted' : codeWords(row);
+    var fix = '';
+    if (axBlocked(row)) {
+      fix = '<button class="act small primary" data-action="setup-ax">Setup Accessibility</button>';
+    } else if (row.surface === 'app' && (row.code === 'no_session' || row.code === 'app_unavailable')) {
+      fix = '<button class="act small primary" data-action="seat-attach" data-arg="' + esc(routeId) +
+        '">Attach session</button>';
+    } else if (optionalRoute(row)) {
+      fix = '<button class="act small primary" data-action="seat-key" data-arg="' + esc(row.provider) +
+        '">Connect</button>';
+    }
+    return '<div class="seat-warn">' + esc(why.charAt(0).toUpperCase() + why.slice(1)) + '.' +
+      (attachNote && attachNote.route === routeId ? ' ' + esc(attachNote.text) : '') +
+      '</div><div class="seat-fix">' + fix +
+      '<button class="act small" data-action="settings">Connections</button></div>';
+  }
+
+  function routeChoices(id) {
+    var routes = (settings && settings.routes) || [];
+    for (var i = 0; i < routes.length; i++) if (routes[i].id === id) return routes[i].choices || null;
+    return null;
+  }
+
+  function pickedModel(choices, model) {
+    var list = choices.models || [];
+    for (var i = 0; i < list.length; i++) {
+      if (choices.effort_is_model) {
+        var ids = list[i].efforts || [];
+        for (var j = 0; j < ids.length; j++) if (ids[j].id === model) return list[i];
+      } else if (list[i].id === model) {
+        return list[i];
+      }
+    }
+    return null;
+  }
+
+  function optionsOf(list, cur) {
+    var out = '';
+    for (var i = 0; i < list.length; i++) {
+      out += '<option value="' + esc(list[i].id) + '"' + (list[i].id === cur ? ' selected' : '') +
+        (list[i].note ? ' title="' + esc(list[i].note) + '"' : '') + '>' + esc(list[i].label) + '</option>';
+    }
+    return out;
+  }
+
+  function seatModel(seat, routeId, cfg) {
+    var choices = routeChoices(routeId);
+    if (!choices || !choices.models || !choices.models.length) return '';
+    var model = (cfg && cfg.model) || '';
+    var effort = (cfg && cfg.effort) || '';
+    var picked = pickedModel(choices, model);
+    var attrs = ' data-seat="' + esc(seat) + '"';
+    var kept = !picked && model ? '<option value="' + esc(model) + '" selected>' + esc(model) + '</option>' : '';
+    var first;
+    var second = '';
+    if (choices.effort_is_model) {
+      var fam = picked || (kept ? null : choices.models[0]);
+      first = '<select data-seat-family="1"' + attrs + '>' +
+        (kept ? '<option value="" selected>' + esc(model) + '</option>' : '') +
+        optionsOf(choices.models, fam ? fam.id : null) + '</select>';
+      var ids = fam ? fam.efforts || [] : [{ id: model, label: model }];
+      second = '<select data-seat-cfg="model"' + attrs + ' aria-label="' + esc(seat) + ' model">' +
+        optionsOf(ids, fam ? (picked ? model : fam.default_effort) : model) + '</select>';
+    } else {
+      var m = picked || (kept ? null : choices.models[0]);
+      first = '<select data-seat-cfg="model"' + attrs + ' aria-label="' + esc(seat) + ' model">' + optionsOf(choices.models, m ? m.id : null) + kept + '</select>';
+      var lv = m && m.efforts ? m.efforts : [];
+      if (lv.length) {
+        second = '<select data-seat-cfg="effort"' + attrs + ' aria-label="' + esc(seat) + ' reasoning">' +
+          '<option value=""' + (effort ? '' : ' selected') + '>' +
+          esc(m.default_effort ? 'default (' + m.default_effort + ')' : 'default effort') + '</option>' +
+          optionsOf(lv, effort || null) + '</select>';
+      }
+    }
+    return '<div class="seat-model">' + first + second + '</div>';
+  }
+
+  function routeWords(id) {
+    if (!id) return 'unassigned';
+    var routes = (settings && settings.routes) || [];
+    for (var i = 0; i < routes.length; i++) {
+      if (routes[i].id === id) return routes[i].provider + ' · ' + routes[i].label;
+    }
+    return id;
+  }
+
+  function loadSettings(check, refreshModels) {
+    var query = [];
+    if (selectedProject) query.push('project=' + encodeURIComponent(selectedProject));
+    if (refreshModels) query.push('models=1');
+    if (check) { query.push('ready=1'); settingsChecking = true; }
+    return Promise.resolve()
+      .then(function () { return api('/api/routes' + (query.length ? '?' + query.join('&') : '')); })
+      .then(function (r) {
+        settingsChecking = false;
+        var rows = (r && r.routes) || [];
+        if (r && r.checked) settingsChecked = true;
+        else if (settingsChecked && settings && settings.routes.length) {
+          var before = {};
+          for (var i = 0; i < settings.routes.length; i++) before[settings.routes[i].id] = settings.routes[i];
+          rows = rows.map(function (row) {
+            var was = before[row.id];
+            return was && typeof was.ready === 'boolean' ? Object.assign({}, was, row) : row;
+          });
+        }
+        settings = { routes: rows, seats: (r && r.seats) || null, keys: (settings && settings.keys) || [] };
+        render();
+        return bridge('keychain.list');
+      })
+      .then(function (k) {
+        if (k && k.providers) { settings.keys = k.providers; render(); }
+      })
+      .catch(function (err) { settingsChecking = false; addLog('could not read the connections: ' + err.message, 'err'); });
+  }
+
+  function saveKey(provider, key) {
+    return bridge('keychain.set', { provider: provider, key: key }).then(function (r) {
+      addLog(r.ok ? 'key saved to the Keychain for ' + provider : (r.error || 'key not saved'), r.ok ? 'okk' : 'err');
+      if (r.ok && settings && (settings.keys || []).indexOf(provider) < 0) {
+        settings.keys = (settings.keys || []).concat([provider]);
+        render();
+      }
+      return r;
+    });
+  }
+
+  function deleteKey(provider) {
+    return bridge('keychain.delete', { provider: provider }).then(function (r) {
+      addLog(r.ok ? 'key removed for ' + provider : 'key not removed', r.ok ? 'okk' : 'err');
+      if (r.ok && settings) {
+        settings.keys = (settings.keys || []).filter(function (p) { return p !== provider; });
+        render();
+      }
+      return r;
+    });
+  }
+
+  function elapsed(sinceIso) {
+    var t = Date.parse(sinceIso || '');
+    if (!t) return '';
+    var secs = Math.max(0, Math.round((Date.now() - t) / 1000));
+    if (secs < 60) return secs + 's';
+    var mins = Math.floor(secs / 60);
+    if (mins < 60) return mins + 'm ' + (secs % 60) + 's';
+    return Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+  }
+
+  var WORK_WORDS = {
+    plan_trial: 'trying the Plan', design: 'proposing the Design', execute: 'building', review: 'reviewing',
+  };
+  function workWords(kind, review) {
+    if (review) return 'reviewing';
+    return WORK_WORDS[kind] || String(kind || 'working').replace(/_/g, ' ');
+  }
+
+  var NEXT_WORDS = {
+    spool: 'name a project to begin',
+    prompt: 'answer one of the Idea prompts',
+    'form:idea': 'write the Idea',
+    'form:experience': 'write the Experience',
+    'form:design': 'write the Design',
+    'form:spec': 'write the Spec',
+    validate: 'review what is staged',
+    gate: 'answer the open question',
+    seat_dispatch: 'send the next seat out',
+    seat_result: 'wait for the seat to answer',
+    egress: 'send the staged message',
+    redispatch: 'send it again after the wait',
+    plan_trial: 'try the Plan',
+    execute: 'build the next leaves',
+    finalize: 'walk the final closure',
+    project_done: 'close the project',
+    reopen: 'reopen an accepted node',
+    recover: 'resume the project',
+    budget_admit: 'let the window admit a dispatch',
+  };
+  function nextWords(legal) {
+    for (var i = 0; i < legal.length; i++) {
+      if (NEXT_WORDS[legal[i]]) return NEXT_WORDS[legal[i]];
+    }
+    return legal.length ? String(legal[0]).replace(/[_:]/g, ' ') : 'nothing';
+  }
+
+  var GUARD_WORDS = {
+    project_seat_identity: 'the dispatch does not belong to this project',
+    legal_stage_phase: 'this is not a legal move at this stage',
+    frozen_base_versions: 'a version moved under the dispatch',
+    drop_down_complete: 'the walk by claim has not finished',
+    frontier_rebuilt: 'the frontier moved while it was being sealed',
+    look2_fresh: 'the sealed document went stale before it left',
+    route_capacity: 'the route is busy with another card',
+    gate_authority: 'a question is open, so nothing goes out',
+    write_tool_scope: 'the seat requested access outside its permitted scope',
+    sealed_super_document: 'the sealed document did not match itself',
+    card_binding: 'the card could not be bound',
+  };
+
+  var STATUS_WORDS = {
+    unspooled: 'Not started', green: 'Running', yellow: 'Waiting on you',
+    red: 'Paused', purple: 'Done',
+  };
+
+  function runWords() {
+    var a = activityOf();
+    if (a.working) {
+      return (SEAT_WORDS[a.working.seat] || a.working.seat) + ' on ' + routeWords(a.working.route) +
+        ', ' + elapsed(a.working.since);
+    }
+    if (a.waiting) return 'Held: ' + routeWords(a.waiting.route) + ' did not answer';
+    if (!state) return 'Idle';
+    if (state.status === 'red') return 'Paused';
+    if (state.gate) return 'Waiting on you';
+    if (state.status === 'purple') return 'Finished';
+    return 'Idle';
+  }
+
+  function activityOf() {
+    return (state && state.activity) || {};
+  }
+
+  function renderActivity() {
+    var box = el('activity');
+    if (!state || !state.project || view !== 'project') { paint(box, ''); return; }
+    var a = activityOf();
+    var f = state.frontier || {};
+    var cls = 'band';
+    var lead = '';
+    var sub = '';
+    var buttons = '';
+    var gateKind = state.gate && state.gate.def ? state.gate.def.kind : null;
+
+    if (a.stopped) {
+      cls += ' held';
+      lead = '<span class="who">Paused.</span>';
+      sub = 'Nothing goes out while the project is paused.';
+      buttons += '<button class="act small primary" data-action="activity-resume">Resume</button>';
+    } else if (state.gate && state.gate.def) {
+      cls += ' waiting';
+      lead = '<span class="who">Waiting on you.</span>';
+      sub = state.gate.def.question || 'A question is open.';
+      if (gateKind && gateKind !== 'wheel') {
+        buttons += '<button class="act small primary" data-action="activity-open" data-arg="' + esc(gateKind) + '">Open the question</button>';
+      }
+    } else if (a.working) {
+      lead = '<span class="pulse"></span><span class="who">' + esc(routeWords(a.working.route)) + ' is ' +
+        esc(workWords(a.working.kind, a.working.review)) + '</span>';
+      sub = 'as the ' + a.working.seat + (a.working.attempt > 1 ? ', attempt ' + a.working.attempt : '') +
+        ' · ' + elapsed(a.working.since);
+    } else if (a.waiting) {
+      cls += ' held';
+      lead = '<span class="who">Held.</span>';
+      sub = routeWords(a.waiting.route) + ' did not answer (' + String(a.waiting.outcome || '').replace(/_/g, ' ') +
+        '). The same sealed message goes out again after the wait.';
+    } else if (a.staged && a.refused && a.refused.dispatch_id) {
+      cls += ' held';
+      lead = '<span class="who">Held before it went out.</span>';
+      sub = (GUARD_WORDS[a.refused.guard] || String(a.refused.guard || 'a guard').replace(/_/g, ' ')) +
+        '. The wheel tries again on its own; nothing is lost.';
+    } else if (a.staged) {
+      cls += ' waiting';
+      lead = '<span class="who">Ready to go out.</span>';
+      sub = 'to the ' + a.staged.seat + ' on ' + routeWords(a.staged.route);
+    } else if (a.pull && a.pull.ids && a.pull.ids.length) {
+      cls += ' waiting';
+      lead = '<span class="who">The seat asked to see more.</span>';
+      sub = a.pull.ids.length + ' more ' + (a.pull.ids.length === 1 ? 'item' : 'items') + ' go with the next look.';
+    } else if (state.status === 'purple') {
+      cls += ' done';
+      lead = '<span class="who">Done.</span>';
+      sub = 'Nothing is running.';
+    } else if (state.pending_validation) {
+      cls += ' waiting';
+      lead = '<span class="who">A result is waiting for review.</span>';
+      sub = TITLES[state.pending_validation.kind] || state.pending_validation.kind;
+      buttons += '<button class="act small primary" data-action="activity-open" data-arg="' +
+        esc(KINDS.indexOf(state.pending_validation.kind) >= 0 ? state.pending_validation.kind : 'plan') +
+        '">Open it</button>';
+    } else {
+      cls += ' idle';
+      lead = '<span class="who">Idle.</span>';
+      sub = 'Next: ' + nextWords(f.next_legal || []);
+      var editable = (f.next_legal || []).filter(function (x) { return String(x).indexOf('form:') === 0; })[0];
+      if (editable) {
+        buttons += '<button class="act small" data-action="activity-open" data-arg="' + esc(editable.slice(5)) + '">Edit</button>';
+      }
+    }
+    if (a.last_failure && a.last_failure.reason && !a.working) {
+      sub += (sub ? ' · ' : '') + 'Last finding: ' + a.last_failure.reason;
+    }
+    buttons += '<button class="act small" data-action="activity-feed">' + (feedOpen ? 'Hide' : 'What happened') + '</button>';
+
+    var html = '<div class="' + cls + '">' + lead + '<span class="sub">' + esc(sub) + '</span>' +
+      '<span class="grow"></span>' + buttons + '</div>';
+    if (feedOpen) html += renderFeed();
+    paint(box, html);
+  }
+
+  function feedLine(row) {
+    if (!row || typeof row !== 'object') return null;
+    if (row.phase === 'APPLYING' && row.event === 'commit') return row.reason || null;
+    if (row.phase === 'APPLYING' && row.event === 'shelved') {
+      return 'the result was shelved under ' + (TITLES[row.under] || row.under);
+    }
+    if (row.phase === 'CLOSED_RUNNING' && row.event === 'card_out') return 'sent to ' + routeWords(row.route);
+    if (row.phase === 'CLOSED_RUNNING' && row.event === 'outcome_classified') {
+      if (row.outcome === 'result') return 'a reply came back';
+      return 'the route answered: ' + String(row.outcome || '').replace(/_/g, ' ');
+    }
+    if (row.phase === 'CLOSED_RUNNING' && row.event === 'schema_reject') return 'the reply did not fit the form';
+    if (row.phase === 'AGREE_OR_ESCALATE' && row.event === 'pull_requested') {
+      return 'the seat asked to see ' + ((row.ids || []).length) + ' more';
+    }
+    if (row.phase === 'WATCH_FRONTIER' && row.event === 'backoff') {
+      return 'held (' + String(row.guard || 'guard').replace(/_/g, ' ') + '); trying again in ' +
+        Math.round((row.wait_ms || 0) / 1000) + 's';
+    }
+    if (row.phase === 'EGRESS_GUARD' && row.ok === false) {
+      return 'the guard refused the send: ' + String(row.guard || '').replace(/_/g, ' ');
+    }
+    if (row.phase === 'DONE') return 'Done.';
+    return null;
+  }
+
+  function clockOf(ts) {
+    var t = Date.parse(ts || '');
+    if (!t) return '';
+    var d = new Date(t);
+    var hh = String(d.getHours());
+    var mm = String(d.getMinutes());
+    return (hh.length < 2 ? '0' + hh : hh) + ':' + (mm.length < 2 ? '0' + mm : mm);
+  }
+
+  function renderFeed() {
+    var a = activityOf();
+    var html = '<div class="feed">';
+    if (a.last_failure && a.last_failure.reason) {
+      html += '<div class="said">' + esc(a.last_failure.reason) + '</div>';
+    }
+    var rows = feed.slice(-40);
+    if (!rows.length) html += '<div class="sub">nothing yet</div>';
+    for (var i = rows.length - 1; i >= 0; i--) {
+      html += '<div class="row"><span class="t">' + esc(rows[i].t) + '</span><span>' + esc(rows[i].text) + '</span></div>';
+    }
+    return html + '</div>';
+  }
+
+  function pollFeed() {
+    if (!feedOpen || !selectedProject) return Promise.resolve();
+    var since = feedSince ? '&since=' + encodeURIComponent(feedSince) : '';
+    return api('/api/audit?n=90&project=' + encodeURIComponent(selectedProject) + since).then(function (rows) {
+      if (!Array.isArray(rows)) return;
+      var out = feedSince ? feed.slice() : [];
+      for (var i = 0; i < rows.length; i++) {
+        if (rows[i] && rows[i].ts && (!feedSince || rows[i].ts > feedSince)) feedSince = rows[i].ts;
+        var line = feedLine(rows[i]);
+        if (line) out.push({ t: clockOf(rows[i].ts), text: line });
+      }
+      feed = out.slice(-90);
+      if (!paintOwed) renderActivity();
+    }).catch(function () {});
+  }
+
+  function renderRail() {
+    var html = '<button type="button" class="rail-new" data-action="new-project"><span aria-hidden="true">+</span><span>New Project</span></button>' +
+      '<div class="rail-sep"></div><div class="rail-title">Projects</div>';
+    var projects = (state && state.projects) || [];
+    var currentId = selectedProject || (state && state.project ? state.project.id : null);
+    for (var i = 0; i < projects.length; i++) {
+      var p = projects[i];
+      var selected = p.id === currentId && view === 'project';
+      html += '<button type="button" class="rail-item' + (selected ? ' selected' : '') + '" aria-current="' + (selected ? 'page' : 'false') + '" data-action="select-project" data-arg="' + esc(p.id) + '">' +
+        '<span class="dot ' + esc(p.status) + '" aria-hidden="true"></span><span>' + esc(p.name) + '</span></button>';
+    }
+    if (!projects.length) html += '<div class="rail-item empty">No project yet</div>';
+    html += '<div class="rail-grow"></div><div class="rail-foot">' +
+      '<button type="button" class="rail-item' + (view === 'settings' ? ' selected' : '') + '" data-action="settings">' +
+      '<span aria-hidden="true">⚙</span><span>Settings</span></button></div>';
+    paint(el('rail-list'), html);
+  }
+
+  function irow(k, valueHtml) {
+    return '<div class="inspector-row"><span class="k">' + esc(k) + '</span>' +
+      '<span class="v">' + valueHtml + '</span></div>';
+  }
+
+  function budgetSet(budget) {
+    var scale = (state && state.budget_scale) || ['25', '50', 'unlimited'];
+    var windows = (state && state.budget_windows) || ['5 hours', '1 day', '1 week', '1 month'];
+    var pick = function (id, options, cur) {
+      var out = '<select id="budget-' + id + '" data-budget="' + id + '">';
+      for (var i = 0; i < options.length; i++) {
+        out += '<option value="' + esc(options[i]) + '"' + (options[i] === cur ? ' selected' : '') +
+          '>' + esc(options[i]) + '</option>';
+      }
+      return out + '</select>';
+    };
+    return '<div class="budget-set">' + pick('authority', scale, budget.authority) +
+      '<span class="per">per</span>' + pick('window', windows, budget.window) + '</div>' +
+      '<div class="sub">' + esc(budget.used + (budget.used === 1 ? ' prompt' : ' prompts') +
+        ' used in this window') + '</div>';
+  }
+
+  function renderInspector() {
+    var box = el('inspector');
+    var show = inspectorOpen && view === 'project';
+    box.hidden = !show;
+    el('inspector-toggle').setAttribute('aria-expanded', String(show));
+    el('inspector-toggle').hidden = view !== 'project';
+    if (!show) return;
+    var html = '';
+    if (state && state.project) {
+      var a = activityOf();
+      html += '<div class="proj">' + esc(state.project.name) + '</div>';
+      html += irow('Status', esc(STATUS_WORDS[state.status] || state.status));
+      html += irow('Stage', esc(state.frontier ? (STAGE_TITLES[state.frontier.stage] || state.frontier.stage) : ''));
+      html += irow('Now', esc(runWords()));
+      html += irow('Next', esc(nextWords((state.frontier && state.frontier.next_legal) || [])));
+      if (state.budget) html += irow('Budget', budgetSet(state.budget));
+      if (state.seats) {
+        html += '<div class="inspector-group"><div class="rail-title">Seats<button class="ghost" data-action="refresh-models" aria-label="Refresh models">Refresh</button></div>';
+        var seatNames = ['leader', 'builder', 'reviewer'];
+        for (var s = 0; s < seatNames.length; s++) {
+          var seat = seatNames[s];
+          var cur = state.seats[seat] ? state.seats[seat].route : '';
+          html += irow(seat, seatSelect(seat, cur) +
+            seatModel(seat, cur, state.seats[seat] ? state.seats[seat].cfg : null) + seatWarning(cur));
+        }
+        html += '</div>';
+        var bad = degradedRoutes();
+        if (!bad.length) html += irow('Routes', 'every route has answered');
+        var gateOpen = state.gate && state.gate.id === 'ROUTE_ATTENTION';
+        var waiting = activityOf().waiting;
+        for (var b = 0; b < bad.length; b++) {
+          var hh = bad[b].h;
+          var waitingHere = waiting && waiting.route === bad[b].id ? waiting : null;
+          html += '<div class="panel" style="margin:8px 0 0"><div class="q">' +
+            esc(routeWords(bad[b].id)) + ' did not answer</div><div class="detail">' +
+            esc(String(hh.last_outcome || 'failure').replace(/_/g, ' ')) + ', ' +
+            esc(String(Number(hh.failures) || 1)) + (Number(hh.failures) === 1 ? ' time' : ' times') +
+            ' since it last answered' +
+            (hh.last_failure ? ', last ' + esc(whenWords(hh.last_failure)) : '') + '. ' +
+            esc(gateOpen
+              ? 'The project is asking what to do: complete the route action, choose another allowed route, or pause.'
+              : (waitingHere && Number(waitingHere.failures)
+                ? 'This message has failed ' + Number(waitingHere.failures) + ' of three tries; if the next one fails, the wheel asks you.'
+                : 'The wheel resends the same sealed message after 1, 5, then 15 minutes, and asks you after three.') +
+                ' The mark clears itself the moment that route answers.') +
+            '</div><div class="actions">' +
+            '<button class="act small" data-action="settings">Check the route</button>' +
+            (gateOpen ? '<button class="act small primary" data-action="goto-gate">Open the question</button>' : '') +
+            '</div></div>';
+        }
+      }
+    } else {
+      html += '<div class="inspector-row">Create a project to inspect it.</div>';
+    }
+    // Keys belong to the machine, not to a project, so they live on Connections and only there.
+    paint(el('inspector-body'), html);
+  }
+
+  function render() {
+    var active = (typeof document !== 'undefined' && document.activeElement) || null;
+    var focusId = active && active.id ? active.id : null;
+    var caret = focusId && typeof active.selectionStart === 'number'
+      ? [active.selectionStart, active.selectionEnd] : null;
+    renderStack();
+    if (focusId) {
+      var again = el(focusId);
+      if (again && again.focus) {
+        again.focus();
+        if (caret && again.setSelectionRange) { try { again.setSelectionRange(caret[0], caret[1]); } catch (e) {} }
+      }
+    }
+  }
+
+  function renderStack() {
+    var current = currentKind();
+    var attention = state && state.gate && state.gate.def && state.gate.def.kind !== 'wheel' && state.nodes && state.nodes[state.gate.def.kind]
+      ? 'gate:' + state.gate.id + ':' + state.gate.def.kind + ':' + (state.gate.opened_by_turn || '')
+      : (state && state.pending_validation ? 'review:' + state.pending_validation.kind + ':' + state.pending_validation.v : null);
+    var needsEyes = attention ? (attention.indexOf('gate:') === 0 ? state.gate.def.kind : state.pending_validation.kind) : null;
+    if (attention && attention !== attentionSeen) {
+      attentionSeen = attention;
+      viewOpen = needsEyes;
+    } else if (attention && viewOpen === null) {
+      viewOpen = needsEyes;
+    } else if (!attention) attentionSeen = null;
+    if (viewOpen === null || (viewOpen !== '' && !(state && state.nodes && state.nodes[viewOpen]))) viewOpen = '';
+    var dot = el('status-dot');
+    var status = state ? state.status : 'unspooled';
+    dot.className = 'dot ' + (status === 'unspooled' ? '' : status);
+    el('project-name').textContent = state && state.project ? state.project.name : '';
+    var f = state && state.frontier;
+    el('stage-line').textContent = f && state.project ? 'Stage: ' + (STAGE_TITLES[f.stage] || TITLES[current] || f.stage) : '';
+    el('budget-line').textContent = state && state.budget
+      ? 'Budget ' + state.budget.used + ' / ' + state.budget.authority : '';
+    var html = setupCover();
+    if (view === 'new') html += renderNewProject();
+    else if (view === 'settings') html += renderSettingsPage();
+    else {
+      if (recoveryText) {
+        html += '<div class="panel recovery"><div class="q">' + esc(recoveryText) + '</div>' +
+          '<div class="actions"><button class="act" data-action="dismiss-recovery">Dismiss</button></div></div>';
+      }
+      if (state && state.gate && state.gate.def && state.gate.def.kind === 'wheel') {
+        html += renderGate('wheel');
+      }
+      if (!(state && state.project)) html += renderWelcome();
+      else for (var i = 0; i < KINDS.length; i++) html += renderNode(KINDS[i], KINDS[i] === current);
+    }
+    var heldKeys = carry(SKEY_IDS);
+    paint(el('stack'), html);
+    uncarry(heldKeys);
+    var starting = view === 'new' || !(state && state.project);
+    paint(el('chat-target'), replyStrip());
+    el('btn-idea').hidden = !starting;
+    el('btn-send').hidden = starting;
+    renderChat();
+    if (!chatTarget) {
+      el('chat-input').placeholder = starting ? DEFAULT_PLACEHOLDER
+        : somethingToSend() ? 'Your reply, if you have one'
+        : 'Nothing is waiting for a reply';
+    }
+    renderRail();
+    renderActivity();
+    renderInspector();
+  }
+
+  function somethingToSend() {
+    if (chatTarget) return true;
+    if (state && state.gate && state.gate.def) return true;
+    var pv = state && state.pending_validation;
+    var seatAuthored = Boolean(pv && pv.author && pv.author.seat && pv.author.seat !== 'human');
+    return Boolean(pv && pv.def && !seatAuthored && (pv.def.actions || []).indexOf('REJECT_RESTAGE') >= 0);
+  }
+
+  function replyStrip() {
+    if (chatTarget) {
+      return '<div class="reply"><span class="lead">Answering the Idea\'s ' + esc(chatTarget.field) + '</span>' +
+        '<span class="q">' + esc(chatTarget.prompt) + '</span>' +
+        '<b data-action="clear-target">clear</b></div>';
+    }
+    var g = state && state.gate && state.gate.def ? state.gate : null;
+    if (g) {
+      return '<div class="reply"><span class="lead">Waiting on you</span>' +
+        '<span class="q">' + esc(g.def.question) + '</span>' +
+        '<span class="note">What you type here goes with the button you press.</span></div>';
+    }
+    var pv = state && state.pending_validation;
+    var seatAuthored = Boolean(pv && pv.author && pv.author.seat && pv.author.seat !== 'human');
+    if (pv && pv.def && !seatAuthored && (pv.def.actions || []).indexOf('REJECT_RESTAGE') >= 0) {
+      return '<div class="reply"><span class="lead">Waiting on your review</span>' +
+        '<span class="q">' + esc(pv.def.question || ('A staged ' + (TITLES[pv.kind] || pv.kind) + ' is ready for a fresh turn.')) + '</span>' +
+        '<span class="note">If you reject it, what you type here is the note that goes back.</span></div>';
+    }
+    return '';
+  }
+
+  function stateKey(s) {
+    if (!s) return '';
+    var key = (s.project ? s.project.id : '-') + '|' + s.seq + '|' + s.status + '|' +
+      (s.recovery ? s.recovery.detected : '-') + '|';
+    var rail = s.projects || [];
+    for (var i = 0; i < rail.length; i++) {
+      key += rail[i].id + '~' + rail[i].name + '~' + rail[i].status + '~' + rail[i].stage + ';';
+    }
+    return key;
+  }
+
+  var missedPolls = 0;
+  var lastKey = null;
+  var paintOwed = false;
+  function poll() {
+    return api('/api/state' + (selectedProject ? '?project=' + encodeURIComponent(selectedProject) : '')).then(function (s) {
+      state = s;
+      if (settings === null) { settings = { routes: [], seats: null, keys: [] }; loadSettings(); }
+      if (!selectedProject && s && s.project) selectedProject = s.project.id;
+      missedPolls = 0;
+      paint(el('notice'), '');
+      var key = stateKey(s);
+      if (key !== lastKey) paintOwed = true;
+      if (!paintOwed) {
+        renderActivity();
+      } else if (!liveSelection()) {
+        // Defer polling renders while text is selected.
+        lastKey = key;
+        paintOwed = false;
+        render();
+      }
+      return pollFeed().then(function () { return s; });
+    }).catch(function () {
+      // Report an outage only after two missed polls.
+      missedPolls += 1;
+      if (missedPolls > 1) {
+        paint(el('notice'), '<div class="offline">The helper is not answering. Agent Wheel restarts it; if this persists, quit and relaunch.</div>');
+      }
+    });
+  }
+
+  function setupAction(action, arg) {
+    if (action === 'setup-hide') { setupHidden = true; render(); return true; }
+    if (action === 'setup-ax') { bridge('accessibility.open'); return true; }
+    if (action === 'seat-attach') {
+      api('/api/routes/attach', { method: 'POST', body: { route: arg, project: selectedProject } })
+        .then(function (r) {
+          if (!r || !r.ok) { addLog((r && r.error) || 'could not attach', 'err'); return; }
+          attachNote = { route: arg, text: 'Opened it here. Start a conversation and this attaches.' };
+          render();
+          if (r.app_path) return bridge('app.open', { path: r.app_path, project: r.cwd || '' });
+        });
+      return true;
+    }
+    if (action === 'seat-key') {
+      viewBefore = view;
+      view = 'settings';
+      openDetails.advanced = true;
+      render();
+      var seatField = el('skey-' + arg);
+      if (seatField && seatField.focus) seatField.focus();
+      loadSettings(true);
+      return true;
+    }
+    return false;
+  }
+
+  function onStackClick(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!t) return;
+    var action = t.dataset.action;
+    var arg = t.dataset.arg;
+    if (e.preventDefault) e.preventDefault();
+    if (setupAction(action, arg)) return;
+    if (action === 'new-project') return onRailClick(e);
+    if (action === 'submit-idea') return onChatFormClick(e);
+    if (action === 'details-toggle') {
+      openDetails[arg] = !openDetails[arg];
+      render();
+      return;
+    }
+    if (action === 'toggle') {
+      viewOpen = viewOpen === arg ? '' : arg;
+      render();
+      return;
+    }
+    if (action === 'chip') {
+      var chips = (state && state.chips) || [];
+      for (var i = 0; i < chips.length; i++) {
+        if (chips[i].id === arg) {
+          chatTarget = { field: chips[i].field, prompt: chips[i].prompt };
+          el('chat-input').placeholder = chips[i].prompt;
+          break;
+        }
+      }
+      render();
+      return;
+    }
+    if (action === 'form-submit') {
+      var ta = el('form-' + arg);
+      var drafts = draftsFor();
+      var text = drafts[arg] != null ? drafts[arg] : (ta.value || '');
+      var content;
+      try { content = JSON.parse(text); } catch (err) {
+        addLog('the ' + arg + ' form is not valid JSON: ' + err.message, 'err');
+        return;
+      }
+      return post({ type: 'form', kind: arg, content: content }).then(function (res) {
+        if (res && res.ok) delete drafts[arg];
+        return res;
+      });
+    }
+    if (action === 'validate') {
+      if (arg === 'REJECT_RESTAGE') {
+        var note = el('chat-input').value;
+        el('chat-input').value = '';
+        return post({ type: 'validate', action: arg, note: note });
+      }
+      return post({ type: 'validate', action: arg });
+    }
+    if (action === 'gate') {
+      var reply = el('chat-input').value;
+      el('chat-input').value = '';
+      var input = { type: 'gate', action: arg, reply: reply };
+      var params = (state && state.gate && state.gate.def && state.gate.def.params && state.gate.def.params[arg]) || null;
+      if (params) {
+        var names = Object.keys(params);
+        for (var i2 = 0; i2 < names.length; i2++) {
+          var picker = el('gate-param-' + arg + '-' + names[i2]);
+          input[names[i2]] = picker && picker.value ? picker.value : params[names[i2]].default;
+        }
+      }
+      return post(input);
+    }
+    if (action === 'reveal') {
+      return bridge('reveal', { path: arg });
+    }
+    if (action === 'reopen') {
+      return api('/api/reopen/preview?kind=' + encodeURIComponent(arg) + (selectedProject ? '&project=' + encodeURIComponent(selectedProject) : '')).then(function (res) {
+        if (!res || !res.ok) { addLog((res && res.error) || 'reopen preview failed', 'err'); return res; }
+        reopenPreview = res;
+        reopenPreview.project = selectedProject;
+        render();
+        return res;
+      }).catch(function (err) { addLog('offline: ' + err.message, 'err'); });
+    }
+    if (action === 'reopen-confirm') {
+      reopenPreview = null;
+      return post({ type: 'reopen', kind: arg });
+    }
+    if (action === 'reopen-cancel') {
+      reopenPreview = null;
+      render();
+      return;
+    }
+    if (action === 'propose-design') {
+      return post({ type: 'seat_dispatch', kind: 'design' });
+    }
+
+    if (action === 'new-project-cancel') {
+      view = 'project';
+      render();
+      return;
+    }
+    if (action === 'settings-close') {
+      view = viewBefore === 'settings' ? 'project' : viewBefore;
+      render();
+      return;
+    }
+    if (action === 'settings-check') {
+      settingsChecking = true;
+      render();
+      return loadSettings(true);
+    }
+    if (action === 'settings-drop-key') {
+      dropKey = arg;
+      dropRoute = null;
+      render();
+      return;
+    }
+    if (action === 'settings-drop-route') {
+      dropRoute = arg;
+      dropKey = null;
+      render();
+      return;
+    }
+    if (action === 'settings-signout') {
+      dropRoute = null;
+      return api('/api/routes/signout', { method: 'POST', body: { route: arg } }).then(function (r) {
+        addLog(r && r.ok ? 'signed out of ' + routeWords(arg) : (r && r.error) || 'could not sign out',
+          r && r.ok ? 'okk' : 'err');
+        return loadSettings(true);
+      });
+    }
+    if (action === 'settings-ax') {
+      axAsked = true;
+      render();
+      return bridge('accessibility.open');
+    }
+    if (action === 'settings-open-app') {
+      return bridge('app.open', { path: arg }).then(function (r) {
+        if (!r || !r.ok) addLog('could not open that app', 'err');
+      });
+    }
+    if (action === 'settings-add-key') {
+      openDetails.advanced = true;
+      render();
+      var field = el('skey-' + arg);
+      if (field && field.focus) field.focus();
+      return;
+    }
+    if (action === 'settings-key-save') {
+      var input2 = el('skey-' + arg);
+      var key = input2 ? (input2.value || '') : '';
+      if (input2) input2.value = '';
+      if (!key) { addLog('type a key for ' + arg + ' first', 'err'); return; }
+      return saveKey(arg, key);
+    }
+    if (action === 'settings-key-delete') {
+      return deleteKey(arg);
+    }
+    if (action === 'dismiss-recovery') {
+      recoveryText = null;
+      render();
+      return;
+    }
+  }
+
+  function submitNewProject() {
+    var name = fieldOf('new-name', 'name');
+    var problem = fieldOf('new-problem', 'problem');
+    var solution = fieldOf('new-solution', 'solution');
+    if (!name || !problem || !solution) {
+      addLog('an idea needs a name, a problem, and a solution before it can start', 'err');
+      return;
+    }
+    return createProject(name, problem, solution);
+  }
+
+  function fieldOf(id, key) {
+    var e = el(id);
+    var v = e && e.value != null ? String(e.value).trim() : '';
+    return v || String(newDraft[key] || '').trim();
+  }
+
+  function onStackInput(e) {
+    var t = e && e.target;
+    if (!t || !t.id) return;
+    if (t.id.indexOf('form-') === 0) { draftsFor()[t.id.slice(5)] = t.value; return; }
+    if (t.id === 'new-name') newDraft.name = t.value;
+    else if (t.id === 'new-problem') newDraft.problem = t.value;
+    else if (t.id === 'new-solution') newDraft.solution = t.value;
+  }
+
+  function onRailClick(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!t) return;
+    if (t.dataset.action === 'new-project') {
+      if (view !== 'settings') viewBefore = view;
+      view = 'new';
+      render();
+      return;
+    }
+    if (t.dataset.action === 'settings') {
+      if (view === 'settings') { view = viewBefore; render(); return; }
+      viewBefore = view;
+      view = 'settings';
+      render();
+      return loadSettings(true);
+    }
+    if (t.dataset.action === 'select-project') {
+      var id = t.dataset.arg || selectedProject;
+      view = 'project';
+      if (id === selectedProject) { render(); return; }
+      selectedProject = id;
+      renderRail();
+      viewOpen = null;
+      lastKey = null;
+      state = null;
+      attentionSeen = null;
+      reopenPreview = null;
+      feed = [];
+      feedSince = null;
+      log = [];
+      chatTarget = null;
+      return poll().then(render);
+    }
+  }
+
+  function onActivityClick(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!t) return;
+    if (e.preventDefault) e.preventDefault();
+    var action = t.dataset.action;
+    if (action === 'activity-feed') {
+      feedOpen = !feedOpen;
+      renderActivity();
+      return feedOpen ? pollFeed() : Promise.resolve();
+    }
+    if (action === 'activity-open') {
+      viewOpen = t.dataset.arg;
+      render();
+      return;
+    }
+    if (action === 'activity-resume') {
+      return post({ type: 'recover' });
+    }
+  }
+
+  function onChatLogClick(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!t) return;
+    if (e.preventDefault) e.preventDefault();
+    if (t.dataset.action === 'reveal') return bridge('reveal', { path: t.dataset.arg });
+  }
+
+  function onInspectorToggle(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    inspectorOpen = !inspectorOpen;
+    renderInspector();
+    if (inspectorOpen) return loadSettings();
+  }
+
+  function onInspectorClick(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!t) return;
+    if (e.preventDefault) e.preventDefault();
+    if (t.dataset.action === 'refresh-models') return loadSettings(false, true);
+    if (setupAction(t.dataset.action, t.dataset.arg)) return;
+    if (t.dataset.action === 'details-toggle') {
+      openDetails[t.dataset.arg] = !openDetails[t.dataset.arg];
+      renderInspector();
+      return;
+    }
+    if (t.dataset.action === 'goto-gate') {
+      if (view !== 'project') view = viewBefore === 'settings' ? 'project' : viewBefore;
+      if (state && state.gate && state.gate.def && state.gate.def.kind) viewOpen = state.gate.def.kind;
+      render();
+      return;
+    }
+    if (t.dataset.action === 'settings') {
+      if (view !== 'settings') { viewBefore = view; view = 'settings'; }
+      render();
+      return loadSettings(true);
+    }
+  }
+
+  function onInspectorChange(e) {
+    var t = e && e.target;
+    if (!t || !t.dataset) return;
+    if (t.dataset.seat && (t.dataset.seatCfg || t.dataset.seatFamily)) {
+      var held = (state && state.seats && state.seats[t.dataset.seat]) || {};
+      var cfg = Object.assign({}, held.cfg || {});
+      var choices = routeChoices(held.route) || { models: [] };
+      var find = function (id) {
+        for (var i = 0; i < choices.models.length; i++) if (choices.models[i].id === id) return choices.models[i];
+        return null;
+      };
+      var put = function (k, v) { if (v) cfg[k] = v; else delete cfg[k]; };
+      if (t.dataset.seatFamily) {
+        var fam = find(t.value);
+        if (!fam) return;
+        put('model', fam.default_effort || '');
+      } else if (t.dataset.seatCfg === 'model') {
+        put('model', t.value);
+        // Clear reasoning levels unsupported by the new model.
+        var m = choices.effort_is_model ? null : find(t.value);
+        var keep = m && m.efforts && cfg.effort && m.efforts.some(function (l) { return l.id === cfg.effort; });
+        if (!keep) delete cfg.effort;
+      } else {
+        put(t.dataset.seatCfg, t.value);
+      }
+      return post({ type: 'seat_assignment', seat: t.dataset.seat, route: held.route, config: cfg });
+    }
+    if (t.dataset.seat) return post({ type: 'seat_assignment', seat: t.dataset.seat, route: t.value });
+    if (t.dataset.budget && state && state.budget) {
+      var next = { authority: state.budget.authority, window: state.budget.window };
+      next[t.dataset.budget] = t.value;
+      return post({ type: 'budget_set', authority: next.authority, window: next.window });
+    }
+  }
+
+  var TRAILING = ['a', 'an', 'the', 'in', 'of', 'on', 'at', 'to', 'for', 'with', 'and', 'or',
+    'that', 'is', 'are', 'was', 'has', 'have', 'no', 'not', 'so', 'but', 'from', 'by', 'as'];
+  function titleFrom(text) {
+    var words = String(text).replace(/\s+/g, ' ').trim().split(' ').slice(0, 6);
+    while (words.length > 2 && TRAILING.indexOf(words[words.length - 1].toLowerCase().replace(/[^a-z]/g, '')) >= 0) {
+      words.pop();
+    }
+    var name = words.join(' ').replace(/[.,;:!?]+$/, '');
+    if (!name) return '';
+    return name.charAt(0).toUpperCase() + name.slice(1);
+  }
+
+  function seedNewProject(text) {
+    newDraft = { name: '', problem: '', solution: '' };
+    var body = String(text || '').trim();
+    if (!body) return;
+    var parts = body.split('|');
+    if (parts.length >= 3) {
+      newDraft.name = parts[0].trim();
+      newDraft.problem = parts[1].trim();
+      newDraft.solution = parts.slice(2).join('|').trim();
+      return;
+    }
+    newDraft.problem = body;
+    newDraft.name = titleFrom(body);
+  }
+
+  function onChatFormClick(e) {
+    var t = e.target && e.target.closest ? e.target.closest('[data-action]') : null;
+    if (!t) return;
+    if (t.dataset.action === 'clear-target') {
+      chatTarget = null;
+      el('chat-input').placeholder = DEFAULT_PLACEHOLDER;
+      render();
+      return;
+    }
+    if (t.dataset.action === 'submit-idea') {
+      if (e.preventDefault) e.preventDefault();
+      if (view === 'new') return submitNewProject();
+      seedNewProject(el('chat-input').value);
+      el('chat-input').value = '';
+      el('chat-input').placeholder = DEFAULT_PLACEHOLDER;
+      chatTarget = null;
+      view = 'new';
+      render();
+    }
+  }
+
+  function onChatSubmit(e) {
+    if (e.preventDefault) e.preventDefault();
+    var text = el('chat-input').value;
+    if (!text) return;
+    if (text.indexOf('/spool ') === 0) {
+      var parts = text.slice(7).split('|');
+      if (parts.length < 3) { addLog('a project needs a name, a problem, and a solution', 'err'); return; }
+      el('chat-input').value = '';
+      return createProject(parts[0].trim(), parts[1].trim(), parts.slice(2).join('|').trim());
+    }
+    if (chatTarget) {
+      var input = {
+        type: 'prompt', text: text,
+        target: { kind: 'idea', field: chatTarget.field },
+      };
+      chatTarget = null;
+      el('chat-input').value = '';
+      el('chat-input').placeholder = DEFAULT_PLACEHOLDER;
+      return post(input);
+    }
+    addLog('nothing is waiting for a reply; press Submit Idea to start a project with this', 'err');
+  }
+
+  reg('div|#rail-list|click', el('rail-list'), 'click', onRailClick);
+  reg('div|#activity|click', el('activity'), 'click', onActivityClick);
+  reg('div|#stack|click', el('stack'), 'click', onStackClick);
+  reg('div|#stack|input', el('stack'), 'input', onStackInput);
+  reg('div|#chat-log|click', el('chat-log'), 'click', onChatLogClick);
+  reg('button|#inspector-toggle|click', el('inspector-toggle'), 'click', onInspectorToggle);
+  reg('div|#inspector-body|click', el('inspector-body'), 'click', onInspectorClick);
+  reg('div|#inspector-body|change', el('inspector-body'), 'change', onInspectorChange);
+  reg('form|#chat-form|submit', el('chat-form'), 'submit', onChatSubmit);
+  reg('form|#chat-form|click', el('chat-form'), 'click', onChatFormClick);
+
+  var pollTimer = setInterval(poll, 1500);
+  poll();
+  bridge('accessibility.status').then(function (r) {
+    if (r && typeof r.trusted === 'boolean') { axTrusted = r.trusted; render(); }
+  });
+
+  window.__test = {
+    registered: registered,
+    handlers: {
+      railClick: onRailClick,
+      activityClick: onActivityClick,
+      stackClick: onStackClick,
+      stackInput: onStackInput,
+      chatLogClick: onChatLogClick,
+      inspectorToggle: onInspectorToggle,
+      inspectorClick: onInspectorClick,
+      inspectorChange: onInspectorChange,
+      chatSubmit: onChatSubmit,
+      chatFormClick: onChatFormClick,
+      poll: poll,
+    },
+    setState: function (s) {
+      state = s;
+      selectedProject = s && s.project ? s.project.id : null;
+      viewOpen = null;
+      view = 'project';
+      render();
+    },
+    getState: function () { return state; },
+    getChatTarget: function () { return chatTarget; },
+    getViewOpen: function () { return viewOpen; },
+    getView: function () { return view; },
+    getFormDrafts: function () { return draftsFor(); },
+    getAllFormDrafts: function () { return formDrafts; },
+    getNewDraft: function () { return newDraft; },
+    getSelectedProject: function () { return selectedProject; },
+    getStateKey: function () { return lastKey; },
+    render: render,
+  };
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,89 @@
+{
+  "version": "0.1.4",
+  "build": "5",
+  "providers": [
+    {
+      "id": "claude",
+      "name": "Claude",
+      "routes": [
+        ["app", "chat", "Chat", "claude-app", "chat"],
+        ["app", "cowork", "Cowork", "claude-app", "cowork"],
+        ["app", "claude-code", "Claude Code", "claude-app", "claude-code"],
+        ["cli", "claude-cli", "Claude CLI", "claude-cli", "claude-cli"]
+      ]
+    },
+    {
+      "id": "chatgpt",
+      "name": "ChatGPT",
+      "routes": [
+        ["app", "classic", "Classic", "chatgpt-chat-app", "classic"],
+        ["app", "chat", "Chat", "chatgpt-modern-chat-app", "chat"],
+        ["app", "work", "Work", "chatgpt-app", "work"],
+        ["cli", "codex", "Codex", "chatgpt-cli", "codex"]
+      ]
+    },
+    {
+      "id": "cursor",
+      "name": "Cursor",
+      "routes": [
+        ["app", "cursor", "Cursor", "cursor-app", "cursor"],
+        ["cli", "cursor-cli", "Cursor CLI", "cursor-cli", "cursor-cli"]
+      ]
+    },
+    {
+      "id": "grok",
+      "name": "Grok",
+      "routes": [
+        ["cli", "grok-cli", "Grok CLI", "grok-cli", "grok-cli"]
+      ]
+    }
+  ],
+  "http": [
+    ["GET", "/"],
+    ["GET", "/index.html"],
+    ["GET", "/log"],
+    ["GET", "/api/seats"],
+    ["GET", "/api/health"],
+    ["GET", "/api/detect"],
+    ["GET", "/api/providers"],
+    ["GET", "/api/route-status"],
+    ["GET", "/api/board"],
+    ["GET", "/api/menu"],
+    ["GET", "/api/accessibility"],
+    ["POST", "/api/accessibility"],
+    ["POST", "/api/prefs"],
+    ["POST", "/api/context"],
+    ["POST", "/api/send"],
+    ["POST", "/api/test-send"],
+    ["POST", "/api/gate"],
+    ["GET", "/api/cards"],
+    ["GET", "/inflight"],
+    ["POST", "/api/bind"],
+    ["POST", "/api/turn"]
+  ],
+  "cliCommands": [
+    "seats",
+    "bind",
+    "loop",
+    "inflight",
+    "reply",
+    "next",
+    "check",
+    "stage",
+    "turn",
+    "gui",
+    "log"
+  ],
+  "cardKeys": ["id", "seat", "method", "from", "body", "state", "reply"],
+  "cardStates": ["out", "waiting", "back"],
+  "methods": ["stdio", "applescript", "ax"],
+  "stateFiles": ["seats.json", "inflight.json", "log.ndjson", "next.json", "prefs.json", "gate.json", "gui.port"],
+  "window": {
+    "default": [1040, 760],
+    "minimum": [720, 520],
+    "providerOrder": ["Claude", "ChatGPT", "Cursor", "Grok"],
+    "surfaceLabels": ["App", "CLI"],
+    "statusLabels": ["Waiting", "Sent", "Allow Accessibility", "Folder Missing", "Stopped"],
+    "settingsLabels": ["Settings", "Accessibility", "Providers", "ABOUT CONVOBUS"]
+  }
+}

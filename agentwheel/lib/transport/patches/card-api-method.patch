@@ -1,0 +1,14 @@
+--- a/Convobus/convobus-0.2.0-source/lib/card.js
++++ b/Convobus/convobus-0.2.0-source/lib/card.js
+@@ -3,9 +3,9 @@
+ const crypto = require('crypto');
+ 
+ const STATES = new Set(['out', 'waiting', 'back']);
+-const METHODS = new Set(['stdio', 'applescript', 'ax']);
++const METHODS = new Set(['stdio', 'applescript', 'ax', 'api']);
+ const SEAT_RE = /\[\[seat::([a-z0-9-]+)\]\]/;
+-const METHOD_RE = /\[\[method::(stdio|applescript|ax)\]\]/;
++const METHOD_RE = /\[\[method::(stdio|applescript|ax|api)\]\]/;
+ 
+ function newCardId() {
+   return 'card_' + crypto.randomBytes(6).toString('hex');

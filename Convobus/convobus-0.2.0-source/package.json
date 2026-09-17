@@ -1,0 +1,19 @@
+{
+  "name": "convobus",
+  "version": "0.2.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "description": "A native macOS conversation router organized by provider, project, and exact route.",
+  "bin": {
+    "convobus": "./convobus"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:app": "./scripts/build-native-app.sh",
+    "test": "./scripts/test.sh"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
